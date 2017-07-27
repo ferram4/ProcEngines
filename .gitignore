@@ -1,0 +1,9 @@
+bin
+obj
+
+*.mdb
+/GameData/FerramAerospaceResearch/Custom*.cfg
+/GameData/FerramAerospaceResearch/FARForceDataUpdate.cfg
+*.suo
+*.DotSettings
+*.user
