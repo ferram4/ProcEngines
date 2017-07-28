@@ -25,7 +25,7 @@ using UnityEngine;
 
 namespace ProcEngines
 {
-    public class BiPropellantMixture
+    public class BiPropellantConfig
     {
         string mixtureTitle;
         double frozenAreaRatio;
@@ -38,18 +38,18 @@ namespace ProcEngines
         BiPropMixtureRatioData[] mixtureData;
         double[] mixtureOFRatios;
 
-        public BiPropellantMixture(ConfigNode mixtureNode)
+        public BiPropellantConfig(ConfigNode biPropNode)
         {
-            mixtureTitle = mixtureNode.GetValue("title");
-            oxidizerString = mixtureNode.GetValue("oxidizer");
-            fuelString = mixtureNode.GetValue("fuel");
+            mixtureTitle = biPropNode.GetValue("title");
+            oxidizerString = biPropNode.GetValue("oxidizer");
+            fuelString = biPropNode.GetValue("fuel");
 
             oxidizer = PartResourceLibrary.Instance.GetDefinition(oxidizerString);
             fuel = PartResourceLibrary.Instance.GetDefinition(fuelString);
 
-            frozenAreaRatio = double.Parse(mixtureNode.GetValue("frozenAreaRatio"));
+            frozenAreaRatio = double.Parse(biPropNode.GetValue("frozenAreaRatio"));
 
-            ConfigNode[] mixtureDataNodes = mixtureNode.GetNodes("MixtureRatioData");
+            ConfigNode[] mixtureDataNodes = biPropNode.GetNodes("MixtureRatioData");
 
             mixtureData = new BiPropMixtureRatioData[mixtureDataNodes.Length];
             mixtureOFRatios = new double[mixtureDataNodes.Length];
@@ -85,6 +85,30 @@ namespace ProcEngines
             Debug.LogError("[ProcEngines] Error in data tables, could not solve");
 
             return new EngineDataPrefab();
+        }
+
+        public static bool CheckConfigResourcesExist(ConfigNode biPropConfig)
+        {
+            bool valid = true;
+            
+            string oxString, fuelString;
+
+            valid &= biPropConfig.HasValue("oxidizer");
+            valid &= biPropConfig.HasValue("fuel");
+
+            if (!valid)
+                return false;
+
+            oxString = biPropConfig.GetValue("oxidizer");
+            fuelString = biPropConfig.GetValue("fuel");
+
+            valid &= PartResourceLibrary.Instance.GetDefinition(oxString) == null;
+            valid &= PartResourceLibrary.Instance.GetDefinition(fuelString) == null;
+
+            if (!valid)
+                return false;
+
+            return true;
         }
     }
 }

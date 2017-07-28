@@ -43,9 +43,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BiPropellantMixture.cs" />
+    <Compile Include="BiPropellantConfig.cs" />
     <Compile Include="BiPropMixtureRatioData.cs" />
     <Compile Include="EngineDataPrefab.cs" />
+    <Compile Include="PropellantMixtureLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
