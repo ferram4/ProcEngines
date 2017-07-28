@@ -8,6 +8,11 @@ namespace ProcEngines
     {
         string mixtureName;
         double oFRatio;
+        public double OFRatio
+        {
+            get { return oFRatio; }
+            private set { oFRatio = value; }
+        }
 
         double minChamPres;
         double maxChamPres;
@@ -92,48 +97,54 @@ namespace ProcEngines
             maxChamPres = chamberPresMPaData[chamberPresMPaData.Length - 1];
         }
 
-        public void CalcData(double inputChamberPres, out double chamberTemp, out double nozzleTemp, out double nozzlePres, out double nozzleMW, out double nozzleGamma, out double nozzleMach)
+        public EngineDataPrefab CalcData(double inputChamberPres)
         {
-            chamberTemp = 0;
-            nozzleTemp = 0;
-            nozzlePres = 0;
-            nozzleMW = 0;
-            nozzleGamma = 0;
-            nozzleMach = 0;
+            EngineDataPrefab prefab = new EngineDataPrefab();
+            prefab.OFRatio = oFRatio;
+            prefab.chamberPresMPa = inputChamberPres;
+            prefab.chamberTempK = 0;
+            prefab.nozzleTempK = 0;
+            prefab.nozzlePresMPa = 0;
+            prefab.nozzleMWgMol = 0;
+            prefab.nozzleGamma = 0;
+            prefab.nozzleMach = 0;
 
             if (inputChamberPres < minChamPres)
             {
                 Debug.LogError("[ProcEngines] Error: chamber pressure of " + inputChamberPres + " is below min pressure of " + minChamPres + " for " + mixtureName + " at O//F " + oFRatio);
-                return;
+                return prefab;
             }
             if (inputChamberPres > maxChamPres)
             {
                 Debug.LogError("[ProcEngines] Error: chamber pressure of " + inputChamberPres + " is below min pressure of " + maxChamPres + " for " + mixtureName + " at O//F " + oFRatio);
-                return;
+                return prefab;
             }
 
             for (int i = 1; i < chamberPresMPaData.Length; ++i)
             {
                 double chamPres2 = chamberPresMPaData[i];
-                if (chamPres2 <= inputChamberPres)
+                if (chamPres2 < inputChamberPres)
                     continue;
+
                 double chamPres1 = chamberPresMPaData[i - 1];
 
                 double indexFactor = inputChamberPres - chamPres1;
                 indexFactor /= (chamPres2 - chamPres1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
 
-                chamberTemp = (chamberTempKData[i] - chamberTempKData[i - 1]) * indexFactor + chamberTempKData[i - 1];
-                nozzleTemp = (nozzleTempKData[i] - nozzleTempKData[i - 1]) * indexFactor + nozzleTempKData[i - 1];
-                nozzlePres = (nozzlePresMPaData[i] - nozzlePresMPaData[i - 1]) * indexFactor + nozzlePresMPaData[i - 1];
-                nozzleMW = (nozzleMolWeightgMolData[i] - nozzleMolWeightgMolData[i - 1]) * indexFactor + nozzleMolWeightgMolData[i - 1];
-                nozzleGamma = (nozzleGammaData[i] - nozzleGammaData[i - 1]) * indexFactor + nozzleGammaData[i - 1];
-                nozzleMach = (nozzleMachData[i] - nozzleMachData[i - 1]) * indexFactor + nozzleMachData[i - 1];
+                prefab.chamberTempK = (chamberTempKData[i] - chamberTempKData[i - 1]) * indexFactor + chamberTempKData[i - 1];
+                prefab.nozzleTempK = (nozzleTempKData[i] - nozzleTempKData[i - 1]) * indexFactor + nozzleTempKData[i - 1];
+                prefab.nozzlePresMPa = (nozzlePresMPaData[i] - nozzlePresMPaData[i - 1]) * indexFactor + nozzlePresMPaData[i - 1];
+                prefab.nozzleMWgMol = (nozzleMolWeightgMolData[i] - nozzleMolWeightgMolData[i - 1]) * indexFactor + nozzleMolWeightgMolData[i - 1];
+                prefab.nozzleGamma = (nozzleGammaData[i] - nozzleGammaData[i - 1]) * indexFactor + nozzleGammaData[i - 1];
+                prefab.nozzleMach = (nozzleMachData[i] - nozzleMachData[i - 1]) * indexFactor + nozzleMachData[i - 1];
 
                 break;
             }
 
-            if (chamberTemp <= 0)
+            if (prefab.chamberTempK <= 0)
                 Debug.LogError("[ProcEngines] Error in data tables, could not solve");
+
+            return prefab;
         }
     }
 }
