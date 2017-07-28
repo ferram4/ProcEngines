@@ -37,6 +37,35 @@ namespace ProcEngines
         public double nozzleMach;
         public double frozenAreaRatio;
 
+        public EngineDataPrefab(ConfigNode node)
+        {
+            OFRatio = double.Parse(node.GetValue("OFRatio"));
+            chamberPresMPa = double.Parse(node.GetValue("chamberPresMPa"));
+            chamberTempK = double.Parse(node.GetValue("chamberTempK"));
+            nozzlePresMPa = double.Parse(node.GetValue("nozzlePresMPa"));
+            nozzleTempK = double.Parse(node.GetValue("nozzleTempK"));
+            nozzleMWgMol = double.Parse(node.GetValue("nozzleMWgMol"));
+            nozzleGamma = double.Parse(node.GetValue("nozzleGamma"));
+            nozzleMach = double.Parse(node.GetValue("nozzleMach"));
+            frozenAreaRatio = double.Parse(node.GetValue("frozenAreaRatio"));
+        }
+
+        public ConfigNode CreateConfigNode()
+        {
+            ConfigNode node = new ConfigNode();
+            node.AddValue("OFRatio", OFRatio);
+            node.AddValue("chamberPresMPa", chamberPresMPa);
+            node.AddValue("chamberTempK", chamberTempK);
+            node.AddValue("nozzlePresMPa", nozzlePresMPa);
+            node.AddValue("nozzleTempK", nozzleTempK);
+            node.AddValue("nozzleMWgMol", nozzleMWgMol);
+            node.AddValue("nozzleGamma", nozzleGamma);
+            node.AddValue("nozzleMach", nozzleMach);
+            node.AddValue("frozenAreaRatio", frozenAreaRatio);
+
+            return node;
+        }
+
         public static EngineDataPrefab operator +(EngineDataPrefab a, EngineDataPrefab b)
         {
             EngineDataPrefab prefab = new EngineDataPrefab();

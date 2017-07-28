@@ -28,7 +28,13 @@ namespace ProcEngines
     public class BiPropellantConfig
     {
         string mixtureTitle;
+        public string MixtureTitle
+        {
+            get { return mixtureTitle; }
+        }
         double frozenAreaRatio;
+        double chamberOFLimitLean;
+        double chamberOFLimitRich;
 
         PartResourceDefinition oxidizer;
         PartResourceDefinition fuel;
@@ -37,6 +43,7 @@ namespace ProcEngines
 
         BiPropMixtureRatioData[] mixtureData;
         double[] mixtureOFRatios;
+
 
         public BiPropellantConfig(ConfigNode biPropNode)
         {
@@ -48,6 +55,8 @@ namespace ProcEngines
             fuel = PartResourceLibrary.Instance.GetDefinition(fuelString);
 
             frozenAreaRatio = double.Parse(biPropNode.GetValue("frozenAreaRatio"));
+            chamberOFLimitLean = double.Parse(biPropNode.GetValue("chamberOFLimitLean"));
+            chamberOFLimitRich = double.Parse(biPropNode.GetValue("chamberOFLimitRich"));
 
             ConfigNode[] mixtureDataNodes = biPropNode.GetNodes("MixtureRatioData");
 

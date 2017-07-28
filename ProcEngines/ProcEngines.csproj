@@ -45,7 +45,9 @@
   <ItemGroup>
     <Compile Include="BiPropellantConfig.cs" />
     <Compile Include="BiPropMixtureRatioData.cs" />
+    <Compile Include="EngineConfig.cs" />
     <Compile Include="EngineDataPrefab.cs" />
+    <Compile Include="NozzleAeroUtils.cs" />
     <Compile Include="PropellantMixtureLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

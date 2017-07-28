@@ -29,13 +29,20 @@ namespace ProcEngines
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     class PropellantMixtureLibrary : MonoBehaviour
     {
+        public static PropellantMixtureLibrary Instance;
         List<BiPropellantConfig> biPropConfigs;
+        public static List<BiPropellantConfig> BiPropConfigs
+        {
+            get { return Instance.biPropConfigs; }
+        }
+
         //TODO: support monoprops, perhaps triprops
 
         void Awake()
         {
             DontDestroyOnLoad(this);
             this.enabled = false;
+            Instance = this;
             LoadMixtures();
         }
 
@@ -51,6 +58,19 @@ namespace ProcEngines
                 if(BiPropellantConfig.CheckConfigResourcesExist(node))
                     biPropConfigs[i] = new BiPropellantConfig(node);
             }
+        }
+
+        public static BiPropellantConfig GetBiPropellantConfig(string mixtureTitle)
+        {
+            List<BiPropellantConfig> biPropConfigs = BiPropConfigs;
+
+            for(int i = 0; i < biPropConfigs.Count; ++i)
+            {
+                BiPropellantConfig config = biPropConfigs[i];
+                if (config.MixtureTitle == mixtureTitle)
+                    return config;
+            }
+            return null;
         }
     }
 }
