@@ -30,12 +30,12 @@ namespace ProcEngines
         const double GAS_CONSTANT = 8314.459848;
         const double G0 = 9.80665;
 
-        double oFRatio;
+        double chamberOFRatio;
         string mixtureTitle;
         BiPropellantConfig propConfig;
         EngineDataPrefab enginePrefab;
 
-        double chamberPres;
+        double chamberPresMPa;
         double nozzleDiameter;
         double nozzleArea;
         double throatArea;
@@ -44,29 +44,31 @@ namespace ProcEngines
         double exhaustVelocityOpt;
         double exitPressureMPa;
 
-        double thrustVac;
-        double thrustSL;
-        double ispSL;
-        double ispVac;
-        double massFlow;
+        double thrustChamberVac;
+        double thrustChamberSL;
+        double massFlowChamber;
+        double massFlowChamberOx;
+        double massFlowChamberFuel;
 
-        void CalculateEngineParameters()
+        double turbinePresRatio = 20;
+
+        void CalculateChamberParameters()
         {
             //Calc geometry
             nozzleArea = nozzleDiameter * nozzleDiameter * 0.25 * Math.PI;
             throatArea = nozzleArea * areaRatio;
 
             //Generate engine prefab for this OF ratio and cham pres
-            enginePrefab = propConfig.CalcPrefabData(oFRatio, chamberPres);
+            enginePrefab = propConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
 
             //Calc mass flow for a choked nozzle
-            massFlow = (enginePrefab.nozzleGamma + 1) / (enginePrefab.nozzleGamma - 1);
-            massFlow = Math.Pow(2 / (enginePrefab.nozzleGamma + 1), massFlow);
-            massFlow *= enginePrefab.nozzleGamma * enginePrefab.nozzleMWgMol;
-            massFlow /= (GAS_CONSTANT * enginePrefab.chamberTempK);
-            massFlow = Math.Sqrt(massFlow);
-            massFlow *= enginePrefab.chamberPresMPa * throatArea;
-            massFlow *= 1000;       //convert from MN (due to MPa) to kN
+            massFlowChamber = (enginePrefab.nozzleGamma + 1) / (enginePrefab.nozzleGamma - 1);
+            massFlowChamber = Math.Pow(2 / (enginePrefab.nozzleGamma + 1), massFlowChamber);
+            massFlowChamber *= enginePrefab.nozzleGamma * enginePrefab.nozzleMWgMol;
+            massFlowChamber /= (GAS_CONSTANT * enginePrefab.chamberTempK);
+            massFlowChamber = Math.Sqrt(massFlowChamber);
+            massFlowChamber *= enginePrefab.chamberPresMPa * throatArea;
+            massFlowChamber *= 1000;       //convert from 1000 t/s (due to MPa) to t/s
 
             double effectiveFrozenAreaRatio = NozzleAeroUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
             double effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
@@ -84,11 +86,35 @@ namespace ProcEngines
 
             exhaustVelocityOpt = exitSonicVelocity * exitMach;
 
-            thrustVac = exhaustVelocityOpt * massFlow + exitPressureMPa * nozzleArea * 1000;
-            ispVac = thrustVac / (massFlow * G0);
+            thrustChamberVac = exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000;
+            thrustChamberSL = exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000;
 
-            thrustSL = exhaustVelocityOpt * massFlow + (exitPressureMPa - 0.1013) * nozzleArea * 1000;
-            ispSL = thrustSL / (massFlow * G0);
+            massFlowChamberFuel = massFlowChamber / (chamberOFRatio + 1);
+            massFlowChamberOx = massFlowChamberFuel * chamberOFRatio;
+        }
+
+        void CalculatePreBurnerParameters(bool runOxRich)
+        {
+            double injectorPressureDrop = 0.3;          //TODO: make injector pres drop vary with throttle capability, tech level
+            double regenerativeCoolingPresDrop = 0.15;  //TODO: make cooling pres draop vary with cooling needs, tech level
+            double tankPresMPa = 0.2;                   //TODO: make variable of some kind;
+
+            double preburnerTurbineOutputPresMPa = chamberPresMPa * (1 + injectorPressureDrop);
+
+            double preburnerPressureMPa = preburnerTurbineOutputPresMPa * turbinePresRatio;    //TODO: allow separate ox, fuel turbines
+
+            double oxPumpPresRiseMPa = preburnerPressureMPa - tankPresMPa;
+            double fuelPumpPresRiseMPa = preburnerPressureMPa * (1 + regenerativeCoolingPresDrop) - tankPresMPa;      //assume that only fuel is used for regen cooling
+
+            double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
+
+            double oxPumpPower = massFlowChamberOx * oxPumpPresRiseMPa * 1000000 / (propConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            double fuelPumpPower = massFlowChamberFuel * fuelPumpPresRiseMPa * 1000000 / (propConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+
+            double turbineEfficiency = 0.7;             //TODO: make vary with tech level
+
+            double turbineInletTempK = 1500;             //TODO: reduce to 1350 at most, make variable, add film cooling reqs for temps above 800
+
         }
     }
 }

@@ -70,6 +70,15 @@ namespace ProcEngines
             }
         }
 
+        public double GetOxDensity()
+        {
+            return oxidizer.density;
+        }
+        public double GetFuelDensity()
+        {
+            return fuel.density;
+        }
+
         public EngineDataPrefab CalcPrefabData(double oFRatio, double chamberPres)
         {
             for (int i = 1; i < mixtureOFRatios.Length; ++i)
