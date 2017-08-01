@@ -52,6 +52,13 @@ namespace ProcEngines
 
         double turbinePresRatio = 2;        //keep it low for staged combustion
 
+        double combustionChamberVol;
+        double combustionChamberDiam;
+        double combustionChamberLength;
+        double combustionChamberMassT;
+
+        double nozzleMassT;
+
         void CalculateChamberParameters()
         {
             //Calc geometry
@@ -110,13 +117,51 @@ namespace ProcEngines
 
             double oxPumpPower = massFlowChamberOx * oxPumpPresRiseMPa * 1000000 / (propConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
             double fuelPumpPower = massFlowChamberFuel * fuelPumpPresRiseMPa * 1000000 / (propConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            double turbinePowerReq = oxPumpPower + fuelPumpPower;
 
             double turbineEfficiency = 0.7;             //TODO: make vary with tech level
+            double turbinePowerReq = (oxPumpPower + fuelPumpPower) / turbineEfficiency;
+
 
             double turbineInletTempK = 1000;             //TODO: make variable, add film cooling reqs for temps above 800
 
             EngineDataPrefab combustorPrefab = propConfig.CalcDataAtPresAndTemp(preburnerPressureMPa, turbineInletTempK, false);
+
+        }
+
+        void CalculateCombustionChamberProperties()
+        {
+            double characteristicLength = 1.27;     //TODO: make variable in BiPropellantConfig and take from there
+
+            double areaCombustionChamber = CalcCombustionChamberArea();
+
+            combustionChamberDiam = 2.0 * Math.Sqrt(areaCombustionChamber / Math.PI);
+            combustionChamberVol = throatArea * characteristicLength;       //Use of throat area is correct with throat area
+            combustionChamberLength = combustionChamberVol / areaCombustionChamber;
+
+            StructuralMaterial combustionChamberMat;
+            StructuralMaterialLibrary.TryGetMaterial(out combustionChamberMat, "Inconel");
+
+            double nozzleAndChamberMatFactor = combustionChamberMat.densitykg_m / combustionChamberMat.ultimateStrengthMPa * 2.0;     //materials properties and safety factor
+            combustionChamberMassT = nozzleAndChamberMatFactor * chamberPresMPa * combustionChamberVol;
+            combustionChamberMassT *= (2 * combustionChamberDiam + 1 / combustionChamberLength);
+
+            nozzleMassT = (areaRatio - 1) / Math.Sin(15.0 * Math.PI / 180.0);
+            nozzleMassT *= throatArea * chamberPresMPa * combustionChamberDiam * nozzleAndChamberMatFactor * 0.5;
+
+            combustionChamberMassT *= 0.001 * 1.52;
+            nozzleMassT *= 0.001 * 1.52;            //convert to tonnes, correction factor
+        }
+
+        //Empirical forumla to related A_cc to A_throat
+        double CalcCombustionChamberArea()
+        {
+            double areaCombustionChamber = Math.Sqrt(throatArea / Math.PI) * 200.0;       //calc throat diameter in cm
+            areaCombustionChamber = Math.Pow(areaCombustionChamber, -0.6);
+            areaCombustionChamber *= 8.0;
+            areaCombustionChamber += 1.25;
+            areaCombustionChamber *= throatArea;
+
+            return areaCombustionChamber;
 
         }
     }
