@@ -105,6 +105,54 @@ namespace ProcEngines
             return new EngineDataPrefab();
         }
 
+        public EngineDataPrefab CalcPrefabData(double oFRatio, double chamberPres, int indexLow)
+        {
+            double oF2 = mixtureOFRatios[indexLow + 1];
+            double oF1 = mixtureOFRatios[indexLow];
+
+            EngineDataPrefab prefab1, prefab2;
+            prefab1 = mixtureData[indexLow].CalcData(chamberPres);
+            prefab2 = mixtureData[indexLow + 1].CalcData(chamberPres);
+
+            double indexFactor = oFRatio - oF1;
+            indexFactor /= (oF2 - oF1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
+
+            EngineDataPrefab results = (prefab2 - prefab1) * indexFactor + prefab1;
+            return results;
+        }
+        
+        public EngineDataPrefab CalcDataAtPresAndTemp(double combustorPressure, double turbineInletTemp, bool oxRich)
+        {
+            //if(oxRich)      //start at the higher OF ratios and count down
+            //{
+            //
+            //}
+            //else
+            //{
+                EngineDataPrefab prefab2 = mixtureData[0].CalcData(combustorPressure);
+                for (int i = 1; i < mixtureData.Length; ++i)
+                {
+                    EngineDataPrefab prefab1 = mixtureData[i].CalcData(combustorPressure);
+
+                    if (prefab1.chamberTempK < turbineInletTemp)
+                    {
+                        prefab2 = prefab1;
+                        continue;
+                    }
+                    double indexFactor = turbineInletTemp - prefab1.chamberTempK;
+                    indexFactor /= (prefab2.chamberTempK - prefab1.chamberTempK);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
+
+                    double desiredOF = (prefab2.OFRatio - prefab1.OFRatio) * indexFactor + prefab1.OFRatio;
+
+                    return CalcPrefabData(desiredOF, combustorPressure, i - 1);
+                }
+            //}
+
+            Debug.LogError("[ProcEngines] Error in data tables, could not solve");
+
+            return new EngineDataPrefab();
+        }
+
         public static bool CheckConfigResourcesExist(ConfigNode biPropConfig)
         {
             bool valid = true;

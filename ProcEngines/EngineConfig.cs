@@ -50,7 +50,7 @@ namespace ProcEngines
         double massFlowChamberOx;
         double massFlowChamberFuel;
 
-        double turbinePresRatio = 20;
+        double turbinePresRatio = 2;        //keep it low for staged combustion
 
         void CalculateChamberParameters()
         {
@@ -110,10 +110,13 @@ namespace ProcEngines
 
             double oxPumpPower = massFlowChamberOx * oxPumpPresRiseMPa * 1000000 / (propConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
             double fuelPumpPower = massFlowChamberFuel * fuelPumpPresRiseMPa * 1000000 / (propConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            double turbinePowerReq = oxPumpPower + fuelPumpPower;
 
             double turbineEfficiency = 0.7;             //TODO: make vary with tech level
 
-            double turbineInletTempK = 1500;             //TODO: reduce to 1350 at most, make variable, add film cooling reqs for temps above 800
+            double turbineInletTempK = 1000;             //TODO: make variable, add film cooling reqs for temps above 800
+
+            EngineDataPrefab combustorPrefab = propConfig.CalcDataAtPresAndTemp(preburnerPressureMPa, turbineInletTempK, false);
 
         }
     }
