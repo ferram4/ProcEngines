@@ -29,13 +29,13 @@ namespace ProcEngines
     {
         public static double AreaRatioFromMach(double mach, double gamma)
         {
-            double result = gamma - 1;
+            double result = gamma - 1.0;
             result *= 0.5 * mach * mach;
             result++;
-            result *= 2;
-            result /= gamma + 1;
+            result *= 2.0;
+            result /= gamma + 1.0;
 
-            result = Math.Pow(result, 0.5 * (gamma + 1) / (gamma - 1));
+            result = Math.Pow(result, 0.5 * (gamma + 1.0) / (gamma - 1.0));
             result /= mach;
 
             return result;
@@ -44,10 +44,9 @@ namespace ProcEngines
         //solves the mach-area relation for mach number using Brent's Method
         public static double MachFromAreaRatio(double areaRatio, double gamma, double epsilon = 0.001, int maxIter = int.MaxValue)
         {
-
             double a, b;
-            a = 1;
-            b = 100;
+            a = 1.0;
+            b = 100.0;
 
             double delta = epsilon * 100;
             double fa, fb;
@@ -93,7 +92,7 @@ namespace ProcEngines
 
                 //Conditions for bisection method
                 bool condition1;
-                double a3pb_over4 = (3 * a + b) * 0.25;
+                double a3pb_over4 = (3.0 * a + b) * 0.25;
 
                 if (a3pb_over4 > b)
                     if (s < a3pb_over4 && s > b)

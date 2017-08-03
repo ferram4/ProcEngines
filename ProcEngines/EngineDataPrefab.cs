@@ -27,6 +27,8 @@ namespace ProcEngines
 {
     public struct EngineDataPrefab
     {
+        const double GAS_CONSTANT = 8314.459848;
+
         public double OFRatio;
         public double chamberPresMPa;
         public double chamberTempK;
@@ -64,6 +66,12 @@ namespace ProcEngines
             node.AddValue("frozenAreaRatio", frozenAreaRatio);
 
             return node;
+        }
+
+        public double CalculateCp()
+        {
+            double Cp = nozzleGamma / (nozzleGamma - 1.0) * GAS_CONSTANT / nozzleMWgMol;
+            return Cp;
         }
 
         public static EngineDataPrefab operator +(EngineDataPrefab a, EngineDataPrefab b)
