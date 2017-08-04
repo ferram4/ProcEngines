@@ -120,8 +120,6 @@ namespace ProcEngines
 
         void SolveGasGenTurbine(bool oxRich)
         {
-
-            double turbineMassFlow = massFlowChamber * 0.02;        //assume 2% for startingPoint
             turbinePresRatio = chamberPresMPa / (0.2);       //assume ~2 atm backpressure
 
             EngineDataPrefab gasGenPrefab = propConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, false);        //assume that gas gen runs at same pressure as chamber
