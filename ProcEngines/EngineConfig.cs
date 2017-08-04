@@ -50,7 +50,7 @@ namespace ProcEngines
         double massFlowChamberOx;
         double massFlowChamberFuel;
 
-        double turbinePresRatio = 2.0;        //keep it low for staged combustion
+        double turbinePresRatio;
 
         double combustionChamberVol;
         double combustionChamberDiam;
@@ -58,7 +58,20 @@ namespace ProcEngines
         double combustionChamberMassT;
         double nozzleMassT;
 
-        void CalculateChamberParameters()
+        double injectorPressureRatioDrop = 0.3;     //TODO: make injector pres drop vary with throttle capability, tech level
+        double regenerativeCoolingPresDrop = 0.15;  //TODO: make cooling pres draop vary with cooling needs, tech level
+        double tankPresMPa = 0.2;                   //TODO: make variable of some kind;
+
+        double oxPumpPresRiseMPa;
+        double fuelPumpPresRiseMPa;
+        double oxPumpPower;
+        double fuelPumpPower;
+
+        double turbineInletTempK = 900;
+        double turbineMassFlow;
+        double turbinePower;
+
+        void CalculateMainCombustionChamberParameters()
         {
             //Calc geometry
             nozzleArea = nozzleDiameter * nozzleDiameter * 0.25 * Math.PI;
@@ -99,7 +112,56 @@ namespace ProcEngines
             massFlowChamberOx = massFlowChamberFuel * chamberOFRatio;
         }
 
-        void CalculatePreBurnerParameters(bool runOxRich)
+        void AssumePumpPressureRise()
+        {
+            oxPumpPresRiseMPa = chamberPresMPa * (1 + injectorPressureRatioDrop) - tankPresMPa;
+            fuelPumpPresRiseMPa = chamberPresMPa * (1 + injectorPressureRatioDrop) * (1.0 + regenerativeCoolingPresDrop) - tankPresMPa;      //assume that only fuel is used for regen cooling
+        }
+
+        void SolveGasGenTurbine(bool oxRich)
+        {
+
+            double turbineMassFlow = massFlowChamber * 0.02;        //assume 2% for startingPoint
+            turbinePresRatio = chamberPresMPa / (0.2);       //assume ~2 atm backpressure
+
+            EngineDataPrefab gasGenPrefab = propConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, false);        //assume that gas gen runs at same pressure as chamber
+            
+            /*double gasGenOFRatio = gasGenPrefab.OFRatio;
+            double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
+            double Cp = gasGenPrefab.CalculateCp();*/
+
+            double[] gasGenOFRatio_gammaPower_Cp = new double[] { gasGenPrefab.OFRatio,
+                gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0),
+                gasGenPrefab.CalculateCp() };
+
+            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp, 0.000001 * massFlowChamber, massFlowChamber);
+        }
+
+        double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp)
+        {
+            double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
+            double turbineEfficiency = 0.7;             //TODO: make vary with tech level
+
+
+            double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp[0] + 1.0);
+            double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp[0];
+
+            double massFlowFuelTotal = turbineMassFlowFuel + massFlowChamberFuel;
+            double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
+
+            oxPumpPower = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (propConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (propConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+
+            turbinePower = (oxPumpPower + fuelPumpPower) / (turbineEfficiency);
+
+            double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gasGenOFRatio_gammaPower_Cp[1]));
+            checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp[2] * turbineInletTempK;
+            checkTurbineMassFlow = turbinePower / (1000.0 * checkTurbineMassFlow);   //convert to tonnes
+
+            return (checkTurbineMassFlow - turbineMassFlow) / checkTurbineMassFlow;
+        }
+
+        /*void CalculatePreBurnerParameters(bool runOxRich)
         {
             double injectorPressureDrop = 0.3;          //TODO: make injector pres drop vary with throttle capability, tech level
 
@@ -110,9 +172,9 @@ namespace ProcEngines
             double turbineInletTempK = 1000.0;             //TODO: make variable, add film cooling reqs for temps above 800
 
             IteratePreburnerAndTurbinePerformance(turbineInletTempK, preburnerTurbineOutputPresMPa);
-        }
+        }*/
 
-        void IteratePreburnerAndTurbinePerformance(double turbineInletTempK, double turbineOutputPres, double epsilon = 0.001)
+        /*void IteratePreburnerAndTurbinePerformance(double turbineInletTempK, double turbineOutputPres, double epsilon = 0.001)
         {
             double regenerativeCoolingPresDrop = 0.15;  //TODO: make cooling pres draop vary with cooling needs, tech level
             double tankPresMPa = 0.2;                   //TODO: make variable of some kind;
@@ -135,9 +197,9 @@ namespace ProcEngines
             double turbineMassFlow = massFlowChamberOx * (1 + 1/combustorPrefab.OFRatio);
             double turbineCp = combustorPrefab.CalculateCp();
             double turbineOutputPower = turbineEfficiency * turbineMassFlow * turbineCp * (1.0 - Math.Pow(turbinePresRatio, combustorPrefab.nozzleGamma / (combustorPrefab.nozzleGamma - 1.0)));
-        }
+        }*/
 
-        void CalculateCombustionChamberProperties()
+        void CalculateCombustionChamberDimensions()
         {
             double characteristicLength = 1.27;     //TODO: make variable in BiPropellantConfig and take from there
 
