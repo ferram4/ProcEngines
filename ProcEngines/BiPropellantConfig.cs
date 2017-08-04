@@ -123,12 +123,29 @@ namespace ProcEngines
         
         public EngineDataPrefab CalcDataAtPresAndTemp(double combustorPressure, double turbineInletTemp, bool oxRich)
         {
-            //if(oxRich)      //start at the higher OF ratios and count down
-            //{
-            //
-            //}
-            //else
-            //{
+            if(oxRich)      //start at the higher OF ratios and count down
+            {
+                EngineDataPrefab prefab1 = mixtureData[mixtureData.Length - 1].CalcData(combustorPressure);
+                for (int i = mixtureData.Length - 2; i >= 0; --i)
+                {
+                    EngineDataPrefab prefab2 = mixtureData[i].CalcData(combustorPressure);
+
+                    if (prefab2.chamberTempK < turbineInletTemp)        //if prefab2 (closer to stoich) is too low, then we're not hot enough yet.
+                    {                                                   //switch prefab1 to be prefab2 and calc a new prefab2 that is hopefully hotter than the temp we want
+                        prefab1 = prefab2;
+                        continue;
+                    }
+                    double indexFactor = turbineInletTemp - prefab2.chamberTempK;
+                    indexFactor /= (prefab1.chamberTempK - prefab2.chamberTempK);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
+
+                    double desiredOF = (prefab1.OFRatio - prefab2.OFRatio) * indexFactor + prefab2.OFRatio;
+
+                    EngineDataPrefab results = (prefab1 - prefab2) * indexFactor + prefab2;
+                    return results;
+                }            
+            }
+            else
+            {
                 EngineDataPrefab prefab2 = mixtureData[0].CalcData(combustorPressure);
                 for (int i = 1; i < mixtureData.Length; ++i)
                 {
@@ -144,9 +161,10 @@ namespace ProcEngines
 
                     double desiredOF = (prefab2.OFRatio - prefab1.OFRatio) * indexFactor + prefab1.OFRatio;
 
-                    return CalcPrefabData(desiredOF, combustorPressure, i - 1);
+                    EngineDataPrefab results = (prefab2 - prefab1) * indexFactor + prefab1;
+                    return results;
                 }
-            //}
+            }
 
             Debug.LogError("[ProcEngines] Error in data tables, could not solve");
 
