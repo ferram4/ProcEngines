@@ -47,6 +47,7 @@
     <Compile Include="BiPropMixtureRatioData.cs" />
     <Compile Include="EngineConfig\EngineConfig.cs" />
     <Compile Include="EngineConfig\EngineConfigGasGen.cs" />
+    <Compile Include="EngineConfig\EngineConfigPresFed.cs" />
     <Compile Include="EngineDataPrefab.cs" />
     <Compile Include="MathUtils.cs" />
     <Compile Include="NozzleAeroUtils.cs" />

@@ -199,7 +199,6 @@ namespace ProcEngines.EngineConfig
             areaCombustionChamber *= throatArea;
 
             return areaCombustionChamber;
-
         }
     }
 }
