@@ -27,7 +27,7 @@ namespace ProcEngines.EngineConfig
 {
     class EngineConfigGasGen : EngineConfigBase
     {
-        public EngineConfigGasGen(string mixture) : base(mixture) { }
+        public EngineConfigGasGen(string mixture, double oFRatio) : base(mixture, oFRatio) { }
 
         protected override void CalculateEngineProperties()
         {

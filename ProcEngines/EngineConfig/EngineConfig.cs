@@ -69,19 +69,29 @@ namespace ProcEngines.EngineConfig
         protected double turbineMassFlow;
         protected double turbinePower;
 
-        double thrustChamberVac;
-        double thrustChamberSL;
+        double thrustVac;
+        double thrustSL;
+        double thrustOpt;
         protected double massFlowTotal;
         double specImpulseVac;
         double specImpulseSL;
+        double specImpulseOpt;
 
-        public EngineConfigBase(string mixture)
+        public double ThrustVac { get { return thrustVac; } }
+        public double ThrustSL { get { return thrustSL; } }
+        public double ThrustOpt { get { return thrustOpt; } }
+        public double SpecImpulseVac { get { return specImpulseVac; } }
+        public double SpecImpulseSL { get { return specImpulseSL; } }
+        public double SpecImpulseOpt { get { return specImpulseOpt; } }
+
+        public EngineConfigBase(string mixture, double oFRatio)
         {
             chamberPresMPa = 5;
             areaRatio = 7;
             nozzleDiameter = 1;
             this.mixtureTitle = mixture;
             biPropConfig = PropellantMixtureLibrary.GetBiPropellantConfig(mixtureTitle);
+            this.chamberOFRatio = oFRatio;
 
             CalculateEngineProperties();
         }
@@ -124,6 +134,18 @@ namespace ProcEngines.EngineConfig
                 chamPresMPa = biPropConfig.ChamberPresLimLow;
 
             chamberPresMPa = chamPresMPa;
+
+            CalculateEngineProperties();
+        }
+
+        public void SetOFRatio(double oFRatio)
+        {
+            if (oFRatio < biPropConfig.ChamberOFLimitLean)
+                oFRatio = biPropConfig.ChamberOFLimitLean;
+            if (oFRatio > biPropConfig.ChamberOFLimitRich)
+                oFRatio = biPropConfig.ChamberOFLimitRich;
+
+            this.chamberOFRatio = oFRatio;
 
             CalculateEngineProperties();
         }
@@ -190,11 +212,13 @@ namespace ProcEngines.EngineConfig
 
             exitPressureMPa = Math.Pow(isentropicRatio, enginePrefab.nozzleGamma / (enginePrefab.nozzleGamma - 1.0)) * enginePrefab.nozzlePresMPa;
 
-            thrustChamberVac = exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0;
-            thrustChamberSL = exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0;
+            thrustVac = exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0;
+            thrustSL = exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0;
+            thrustOpt = exhaustVelocityOpt * massFlowChamber;
 
-            specImpulseVac = thrustChamberVac / (massFlowTotal * G0);
-            specImpulseSL = thrustChamberSL / (massFlowTotal * G0);
+            specImpulseVac = thrustVac / (massFlowTotal * G0);
+            specImpulseSL = thrustSL / (massFlowTotal * G0);
+            specImpulseOpt = thrustOpt / (massFlowTotal * G0);
         }
 
         /*void CalculatePreBurnerParameters(bool runOxRich)

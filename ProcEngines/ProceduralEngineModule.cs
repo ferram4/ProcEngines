@@ -44,14 +44,40 @@ namespace ProcEngines
         double nozzleDiameter = 1;
         double lastNozzleDiameter = 1;
 
-        void Awake()
+        [KSPField(guiName = "O//F Ratio", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 3f, minValue = 2f, scene = UI_Scene.All, stepIncrement = 0.05f)]
+        double oFRatio = 2.5;
+        double lastOFRatio = 2.5;
+
+        [KSPField(guiName = "Thrust Vac", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        double thrustVac;
+        [KSPField(guiName = "Thrust SL", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        double thrustSL;
+        [KSPField(guiName = "Thrust Opt", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        double thrustOpt;
+        [KSPField(guiName = "Isp Vac", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        double IspVac;
+        [KSPField(guiName = "Isp SL", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        double IspSL;
+        [KSPField(guiName = "Isp Opt", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        double IspOpt;
+
+        void Start()
         {
-            procEngineConfig = new EngineConfigGasGen(mixture);
+            procEngineConfig = new EngineConfigGasGen(mixture, oFRatio);
         }
 
         void FixedUpdate()
         {
+            if(CheckChanges())
+            {
+                thrustVac = procEngineConfig.ThrustVac;
+                thrustSL = procEngineConfig.ThrustSL;
+                thrustOpt = procEngineConfig.ThrustOpt;
 
+                IspVac = procEngineConfig.SpecImpulseVac;
+                IspSL = procEngineConfig.SpecImpulseSL;
+                IspOpt = procEngineConfig.SpecImpulseOpt;
+            }
         }
 
         bool CheckChanges()
@@ -73,6 +99,12 @@ namespace ProcEngines
             {
                 procEngineConfig.SetNozzleDiameter(nozzleDiameter);
                 lastNozzleDiameter = nozzleDiameter;
+                changes = true;
+            }
+            if (oFRatio != lastOFRatio)
+            {
+                procEngineConfig.SetOFRatio(oFRatio);
+                lastOFRatio = oFRatio;
                 changes = true;
             }
 
