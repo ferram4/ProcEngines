@@ -7,3 +7,11 @@ obj
 *.suo
 *.DotSettings
 *.user
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF6.0-CP100.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF6.0-CP0.25.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF55-CP100.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF55-CP0.25.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF1.5-CP100.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF1.5-CP0.25.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF0.15-CP100.png
+/GameData/ProcEngines/PropellantMixtures/CH4_LOX-OF0.15-CP0.25.png
