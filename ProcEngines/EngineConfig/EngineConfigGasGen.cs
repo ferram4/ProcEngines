@@ -45,7 +45,7 @@ namespace ProcEngines.EngineConfig
         {
             turbinePresRatio = chamberPresMPa / (0.2);       //assume ~2 atm ~= 0.2 MPa backpressure
 
-            EngineDataPrefab gasGenPrefab = propConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
+            EngineDataPrefab gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
 
             /*double gasGenOFRatio = gasGenPrefab.OFRatio;
             double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
@@ -72,8 +72,8 @@ namespace ProcEngines.EngineConfig
             double massFlowFuelTotal = turbineMassFlowFuel + massFlowChamberFuel;
             double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
 
-            oxPumpPower = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (propConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (propConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            oxPumpPower = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (biPropConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (biPropConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
 
             turbinePower = (oxPumpPower + fuelPumpPower) / (turbineEfficiency);
 

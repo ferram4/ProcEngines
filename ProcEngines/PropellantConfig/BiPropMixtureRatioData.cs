@@ -37,6 +37,14 @@ namespace ProcEngines.PropellantConfig
 
         double minChamPres;
         double maxChamPres;
+        public double MinChamPres
+        {
+            get { return minChamPres; }
+        }
+        public double MaxChamPres
+        {
+            get { return maxChamPres; }
+        }
 
         double[] chamberPresMPaData;
         double[] chamberTempKData;

@@ -23,9 +23,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using KSP;
-using ProcEngines.PropellantConfig;
 
-namespace ProcEngines
+namespace ProcEngines.PropellantConfig
 {
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     class PropellantMixtureLibrary : MonoBehaviour

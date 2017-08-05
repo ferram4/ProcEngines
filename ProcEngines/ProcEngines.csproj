@@ -43,6 +43,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ProceduralEngineModule.cs" />
     <Compile Include="PropellantConfig\BiPropellantConfig.cs" />
     <Compile Include="PropellantConfig\BiPropMixtureRatioData.cs" />
     <Compile Include="EngineConfig\EngineConfig.cs" />
@@ -51,7 +52,7 @@
     <Compile Include="EngineDataPrefab.cs" />
     <Compile Include="MathUtils.cs" />
     <Compile Include="NozzleAeroUtils.cs" />
-    <Compile Include="PropellantMixtureLibrary.cs" />
+    <Compile Include="PropellantConfig\PropellantMixtureLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StructuralMaterialLibrary.cs" />
   </ItemGroup>

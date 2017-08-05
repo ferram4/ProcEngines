@@ -33,7 +33,7 @@ namespace ProcEngines.EngineConfig
 
         protected double chamberOFRatio;
         string mixtureTitle;
-        protected BiPropellantConfig propConfig;
+        protected BiPropellantConfig biPropConfig;
         protected EngineDataPrefab enginePrefab;
 
         protected double chamberPresMPa;
@@ -76,7 +76,47 @@ namespace ProcEngines.EngineConfig
         double specImpulseSL;
 
 
+        public void SetBipropConfig(string mixtureTitle)
+        {
+            this.mixtureTitle = mixtureTitle;
+            biPropConfig = PropellantMixtureLibrary.GetBiPropellantConfig(mixtureTitle);
+            if (chamberOFRatio < biPropConfig.ChamberOFLimitLean)
+                chamberOFRatio = biPropConfig.ChamberOFLimitLean;
+            if (chamberOFRatio > biPropConfig.ChamberOFLimitRich)
+                chamberOFRatio = biPropConfig.ChamberOFLimitRich;
 
+            CalculateEngineProperties();
+        }
+
+        public void SetExpansionRatio(double areaRatio)
+        {
+            if (areaRatio < biPropConfig.FrozenAreaRatio)
+                areaRatio = biPropConfig.FrozenAreaRatio;
+
+            this.areaRatio = areaRatio;
+
+            CalculateEngineProperties();
+        }
+
+        public void SetNozzleDiameter(double diameter)
+        {
+            nozzleDiameter = diameter;
+
+            CalculateEngineProperties();
+        }
+
+        public void SetChamberPressure(double chamPresMPa)
+        {
+            if (chamPresMPa > biPropConfig.ChamberPresLimHigh)
+                chamPresMPa = biPropConfig.ChamberPresLimHigh;
+            if (chamPresMPa < biPropConfig.ChamberPresLimLow)
+                chamPresMPa = biPropConfig.ChamberPresLimLow;
+
+            chamberPresMPa = chamPresMPa;
+
+            CalculateEngineProperties();
+        }
+        
         protected virtual void CalculateEngineProperties()
         {
         }
@@ -88,7 +128,7 @@ namespace ProcEngines.EngineConfig
             throatArea = nozzleArea * areaRatio;
 
             //Generate engine prefab for this OF ratio and cham pres
-            enginePrefab = propConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
+            enginePrefab = biPropConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
 
             //Calc mass flow for a choked nozzle
             massFlowChamber = (enginePrefab.nozzleGamma + 1.0) / (enginePrefab.nozzleGamma - 1.0);

@@ -33,8 +33,34 @@ namespace ProcEngines.PropellantConfig
             get { return mixtureTitle; }
         }
         double frozenAreaRatio;
+        public double FrozenAreaRatio
+        {
+            get { return frozenAreaRatio; }
+        }
+        
         double chamberOFLimitLean;
         double chamberOFLimitRich;
+
+        public double ChamberOFLimitLean
+        {
+            get { return chamberOFLimitLean; }
+        }
+        public double ChamberOFLimitRich
+        {
+            get { return chamberOFLimitRich; }
+        }
+
+        double chamberPresLimLow;
+        double chamberPresLimHigh;
+
+        public double ChamberPresLimLow
+        {
+            get { return chamberPresLimLow; }
+        }
+        public double ChamberPresLimHigh
+        {
+            get { return chamberPresLimHigh; }
+        }
 
         PartResourceDefinition oxidizer;
         PartResourceDefinition fuel;
@@ -68,6 +94,9 @@ namespace ProcEngines.PropellantConfig
                 mixtureData[i] = new BiPropMixtureRatioData(mixtureDataNodes[i], mixtureTitle);
                 mixtureOFRatios[i] = mixtureData[i].OFRatio;
             }
+
+            chamberPresLimLow = mixtureData[0].MinChamPres;
+            chamberPresLimHigh = mixtureData[0].MaxChamPres * 0.5;
         }
 
         public double GetOxDensity()
