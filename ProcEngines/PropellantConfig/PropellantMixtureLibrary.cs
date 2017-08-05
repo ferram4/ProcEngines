@@ -61,8 +61,8 @@ namespace ProcEngines.PropellantConfig
             for(int i = 0; i < biPropNodes.Length; ++i)
             {
                 ConfigNode node = biPropNodes[i];
-                if(BiPropellantConfig.CheckConfigResourcesExist(node))
-                    biPropConfigs[i] = new BiPropellantConfig(node);
+                if (BiPropellantConfig.CheckConfigResourcesExist(node))
+                    biPropConfigs.Add(new BiPropellantConfig(node));
             }
         }
 

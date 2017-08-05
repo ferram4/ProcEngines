@@ -215,8 +215,8 @@ namespace ProcEngines.PropellantConfig
             oxString = biPropConfig.GetValue("oxidizer");
             fuelString = biPropConfig.GetValue("fuel");
 
-            valid &= PartResourceLibrary.Instance.GetDefinition(oxString) == null;
-            valid &= PartResourceLibrary.Instance.GetDefinition(fuelString) == null;
+            valid &= PartResourceLibrary.Instance.GetDefinition(oxString) != null;
+            valid &= PartResourceLibrary.Instance.GetDefinition(fuelString) != null;
 
             if (!valid)
                 return false;

@@ -32,33 +32,33 @@ namespace ProcEngines
         EngineConfigBase procEngineConfig;
         string mixture = "Kerosene + Lox";
 
-        [KSPField(guiName = "Cham. Pres. MPa", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 50.0f, minValue = 0.25f, scene = UI_Scene.All, stepIncrement = 0.25f)]
+        [KSPField(guiName = "Cham. Pres. MPa", isPersistant = true, guiActiveEditor = true, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 50.0f, minValue = 0.25f, scene = UI_Scene.All, stepIncrement = 0.25f)]
         float chamberPresMPa = 5;
         float lastChamPres = 5;
 
-        [KSPField(guiName = "Area Ratio", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 250.0f, minValue = 1.3f, scene = UI_Scene.All, stepIncrement = 0.1f)]
+        [KSPField(guiName = "Area Ratio", isPersistant = true, guiActiveEditor = true, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 250.0f, minValue = 1.3f, scene = UI_Scene.All, stepIncrement = 0.1f)]
         float areaRatio = 7;
         float lastAreaRatio = 7;
 
-        [KSPField(guiName = "Nozzle Diam.", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 20f, minValue = 0.1f, scene = UI_Scene.All, stepIncrement = 0.1f)]
+        [KSPField(guiName = "Nozzle Diam.", isPersistant = true, guiActiveEditor = true, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 20f, minValue = 0.1f, scene = UI_Scene.All, stepIncrement = 0.1f)]
         float nozzleDiameter = 1;
         float lastNozzleDiameter = 1;
 
-        [KSPField(guiName = "O//F Ratio", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 3f, minValue = 2f, scene = UI_Scene.All, stepIncrement = 0.05f)]
+        [KSPField(guiName = "O//F Ratio", isPersistant = true, guiActiveEditor = true, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 3f, minValue = 2f, scene = UI_Scene.All, stepIncrement = 0.05f)]
         float oFRatio = 2.5f;
         float lastOFRatio = 2.5f;
 
-        [KSPField(guiName = "Thrust Vac", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        [KSPField(guiName = "Thrust Vac", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float thrustVac;
-        [KSPField(guiName = "Thrust SL", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        [KSPField(guiName = "Thrust SL", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float thrustSL;
-        [KSPField(guiName = "Thrust Opt", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        [KSPField(guiName = "Thrust Opt", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float thrustOpt;
-        [KSPField(guiName = "Isp Vac", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        [KSPField(guiName = "Isp Vac", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float IspVac;
-        [KSPField(guiName = "Isp SL", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        [KSPField(guiName = "Isp SL", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float IspSL;
-        [KSPField(guiName = "Isp Opt", isPersistant = true, guiActiveEditor = false, guiActive = false)]
+        [KSPField(guiName = "Isp Opt", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float IspOpt;
 
         void Start()

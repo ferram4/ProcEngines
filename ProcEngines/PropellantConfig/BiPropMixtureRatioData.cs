@@ -58,7 +58,7 @@ namespace ProcEngines.PropellantConfig
         {
             this.mixtureName = mixtureName;
 
-            this.oFRatio = double.Parse(mixtureRatioNode.GetValue("OFRatio"));
+            this.oFRatio = double.Parse(mixtureRatioNode.GetValue("OFratio"));
             ConfigNode pressureNode = mixtureRatioNode.GetNode("PressureData");
 
             string[] pressureNodeKeys = pressureNode.GetValues("key");

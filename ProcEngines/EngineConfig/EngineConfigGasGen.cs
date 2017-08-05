@@ -53,35 +53,38 @@ namespace ProcEngines.EngineConfig
             double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
             double Cp = gasGenPrefab.CalculateCp();*/
 
-            double[] gasGenOFRatio_gammaPower_Cp = new double[] { gasGenPrefab.OFRatio,
+            double[] gasGenOFRatio_gammaPower_Cp_Dens = new double[] { gasGenPrefab.OFRatio,
                 gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0),
-                gasGenPrefab.CalculateCp() };
+                gasGenPrefab.CalculateCp(),
+                biPropConfig.GetOxDensity(),
+                biPropConfig.GetFuelDensity()};
 
-            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp, 0.000001 * massFlowChamber, massFlowChamber);
+            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp_Dens, 0.000001 * massFlowChamber, massFlowChamber);
 
             massFlowTotal += turbineMassFlow;
         }
 
-        double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp)
+        double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp_Dens)
         {
             double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
             double turbineEfficiency = 0.7;             //TODO: make vary with tech level
 
 
-            double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp[0] + 1.0);
-            double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp[0];
+            double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp_Dens[0] + 1.0);
+            double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp_Dens[0];
 
             double massFlowFuelTotal = turbineMassFlowFuel + massFlowChamberFuel;
             double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
 
-            oxPumpPower = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (biPropConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (biPropConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            oxPumpPower = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[3] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[4] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
 
             turbinePower = (oxPumpPower + fuelPumpPower) / (turbineEfficiency);
 
-            double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gasGenOFRatio_gammaPower_Cp[1]));
-            checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp[2] * turbineInletTempK;
+            double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gasGenOFRatio_gammaPower_Cp_Dens[1]));
+            checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp_Dens[2] * turbineInletTempK;
             checkTurbineMassFlow = turbinePower / (1000.0 * checkTurbineMassFlow);   //convert to tonnes
+
 
             return (checkTurbineMassFlow - turbineMassFlow) / checkTurbineMassFlow;
         }
