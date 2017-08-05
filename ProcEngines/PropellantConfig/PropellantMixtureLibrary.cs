@@ -26,11 +26,20 @@ using KSP;
 
 namespace ProcEngines.PropellantConfig
 {
-    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
-    class PropellantMixtureLibrary : MonoBehaviour
+    class PropellantMixtureLibrary
     {
-        public static PropellantMixtureLibrary Instance;
+        static PropellantMixtureLibrary instance;
+        public static PropellantMixtureLibrary Instance
+        {
+            get
+            {
+                if (instance == null)
+                    instance = new PropellantMixtureLibrary();
+                return instance;
+            }
+        }
         List<BiPropellantConfig> biPropConfigs;
+
         public static List<BiPropellantConfig> BiPropConfigs
         {
             get { return Instance.biPropConfigs; }
@@ -38,11 +47,8 @@ namespace ProcEngines.PropellantConfig
 
         //TODO: support monoprops, perhaps triprops
 
-        void Awake()
+        PropellantMixtureLibrary()
         {
-            DontDestroyOnLoad(this);
-            this.enabled = false;
-            Instance = this;
             LoadMixtures();
         }
 
@@ -70,6 +76,8 @@ namespace ProcEngines.PropellantConfig
                 if (config.MixtureTitle == mixtureTitle)
                     return config;
             }
+            Debug.LogError("[ProcEngines] Error; propellant mixture " + mixtureTitle + " could not be found");
+
             return null;
         }
     }
