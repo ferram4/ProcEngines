@@ -27,6 +27,9 @@ namespace ProcEngines.EngineConfig
 {
     class EngineConfigPresFed : EngineConfigBase
     {
+
+        public EngineConfigPresFed(string mixture) : base(mixture) { }
+
         protected override void CalculateEngineProperties()
         {
             CalculateMainCombustionChamberParameters();

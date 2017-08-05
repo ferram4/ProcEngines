@@ -75,6 +75,17 @@ namespace ProcEngines.EngineConfig
         double specImpulseVac;
         double specImpulseSL;
 
+        public EngineConfigBase(string mixture)
+        {
+            chamberPresMPa = 5;
+            areaRatio = 7;
+            nozzleDiameter = 1;
+            this.mixtureTitle = mixture;
+            biPropConfig = PropellantMixtureLibrary.GetBiPropellantConfig(mixtureTitle);
+
+            CalculateEngineProperties();
+        }
+
 
         public void SetBipropConfig(string mixtureTitle)
         {
@@ -113,6 +124,22 @@ namespace ProcEngines.EngineConfig
                 chamPresMPa = biPropConfig.ChamberPresLimLow;
 
             chamberPresMPa = chamPresMPa;
+
+            CalculateEngineProperties();
+        }
+
+        public void SetEngineProperties(double areaRatio, double diameter, double chamPresMPa)
+        {
+            if (areaRatio < biPropConfig.FrozenAreaRatio)
+                areaRatio = biPropConfig.FrozenAreaRatio;
+
+            this.areaRatio = areaRatio;
+            nozzleDiameter = diameter;
+
+            if (chamPresMPa > biPropConfig.ChamberPresLimHigh)
+                chamPresMPa = biPropConfig.ChamberPresLimHigh;
+            if (chamPresMPa < biPropConfig.ChamberPresLimLow)
+                chamPresMPa = biPropConfig.ChamberPresLimLow;
 
             CalculateEngineProperties();
         }

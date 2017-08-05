@@ -22,10 +22,61 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ProcEngines.EngineConfig;
 
 namespace ProcEngines
 {
     class ProceduralEngineModule : PartModule
     {
+
+        EngineConfigBase procEngineConfig;
+        string mixture = "Kerosene_Lox";
+
+        [KSPField(guiName = "Cham. Pres. MPa", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 50.0f, minValue = 0.25f, scene = UI_Scene.All, stepIncrement = 0.25f)]
+        double chamberPresMPa = 5;
+        double lastChamPres = 5;
+
+        [KSPField(guiName = "Area Ratio", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 250.0f, minValue = 1.3f, scene = UI_Scene.All, stepIncrement = 0.1f)]
+        double areaRatio = 7;
+        double lastAreaRatio = 7;
+
+        [KSPField(guiName = "Nozzle Diam.", isPersistant = true, guiActiveEditor = false, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 20f, minValue = 0.1f, scene = UI_Scene.All, stepIncrement = 0.1f)]
+        double nozzleDiameter = 1;
+        double lastNozzleDiameter = 1;
+
+        void Awake()
+        {
+            procEngineConfig = new EngineConfigGasGen(mixture);
+        }
+
+        void FixedUpdate()
+        {
+
+        }
+
+        bool CheckChanges()
+        {
+            bool changes = false;
+            if (chamberPresMPa != lastChamPres)
+            {
+                procEngineConfig.SetChamberPressure(chamberPresMPa);
+                lastChamPres = chamberPresMPa;
+                changes = true;
+            }
+            if (areaRatio != lastAreaRatio)
+            {
+                procEngineConfig.SetExpansionRatio(areaRatio);
+                lastAreaRatio = areaRatio;
+                changes = true;
+            }
+            if (nozzleDiameter != lastNozzleDiameter)
+            {
+                procEngineConfig.SetNozzleDiameter(nozzleDiameter);
+                lastNozzleDiameter = nozzleDiameter;
+                changes = true;
+            }
+
+            return changes;
+        }
     }
 }
