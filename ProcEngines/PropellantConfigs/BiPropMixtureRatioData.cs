@@ -23,7 +23,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace ProcEngines
+namespace ProcEngines.PropellantConfigs
 {
     public class BiPropMixtureRatioData
     {

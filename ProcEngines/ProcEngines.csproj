@@ -43,8 +43,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BiPropellantConfig.cs" />
-    <Compile Include="BiPropMixtureRatioData.cs" />
+    <Compile Include="PropellantConfigs\BiPropellantConfig.cs" />
+    <Compile Include="PropellantConfigs\BiPropMixtureRatioData.cs" />
     <Compile Include="EngineConfig\EngineConfig.cs" />
     <Compile Include="EngineConfig\EngineConfigGasGen.cs" />
     <Compile Include="EngineConfig\EngineConfigPresFed.cs" />

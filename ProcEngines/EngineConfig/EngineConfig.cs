@@ -22,6 +22,7 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ProcEngines.PropellantConfigs;
 
 namespace ProcEngines.EngineConfig
 {
@@ -73,6 +74,8 @@ namespace ProcEngines.EngineConfig
         protected double massFlowTotal;
         double specImpulseVac;
         double specImpulseSL;
+
+
 
         protected virtual void CalculateEngineProperties()
         {

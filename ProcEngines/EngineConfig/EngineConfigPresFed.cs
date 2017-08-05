@@ -38,6 +38,5 @@ namespace ProcEngines.EngineConfig
         {
             tankPresMPa = chamberPresMPa * (1 + injectorPressureRatioDrop);
         }
-
     }
 }
