@@ -45,7 +45,7 @@ namespace ProcEngines.EngineConfig
 
         void SolveGasGenTurbine(bool oxRich)
         {
-            turbinePresRatio = chamberPresMPa / (0.6);       //assume ~5 atm ~= 0.6 MPa backpressure
+            turbinePresRatio = chamberPresMPa / (0.2);       //assume ~2 atm ~= 0.2 MPa backpressure
 
             EngineDataPrefab gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
 

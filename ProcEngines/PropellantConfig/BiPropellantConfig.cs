@@ -101,11 +101,11 @@ namespace ProcEngines.PropellantConfig
 
         public double GetOxDensity()
         {
-            return oxidizer.density;
+            return oxidizer.density * 1000.0;   //convert from t/L to t/m^3
         }
         public double GetFuelDensity()
         {
-            return fuel.density;
+            return fuel.density * 1000.0;   //convert from t/L to t/m^3
         }
 
         public EngineDataPrefab CalcPrefabData(double oFRatio, double chamberPres)
