@@ -53,8 +53,9 @@ namespace ProcEngines.PropellantConfig
         double[] nozzleMolWeightgMolData;
         double[] nozzleGammaData;
         double[] nozzleMachData;
+        double frozenAreaRatio;
 
-        public BiPropMixtureRatioData(ConfigNode mixtureRatioNode, string mixtureName)
+        public BiPropMixtureRatioData(ConfigNode mixtureRatioNode, string mixtureName, double frozenAreaRatio)
         {
             this.mixtureName = mixtureName;
 
@@ -70,6 +71,7 @@ namespace ProcEngines.PropellantConfig
             this.nozzleMolWeightgMolData = new double[pressureNodeKeys.Length];
             this.nozzleGammaData = new double[pressureNodeKeys.Length];
             this.nozzleMachData = new double[pressureNodeKeys.Length];
+            this.frozenAreaRatio = frozenAreaRatio;
 
             for (int i = 0; i < pressureNodeKeys.Length; ++i)
             {
@@ -137,6 +139,7 @@ namespace ProcEngines.PropellantConfig
             prefab.nozzleMWgMol = 0;
             prefab.nozzleGamma = 0;
             prefab.nozzleMach = 0;
+            prefab.frozenAreaRatio = frozenAreaRatio;
 
             if (inputChamberPres < minChamPres)
             {

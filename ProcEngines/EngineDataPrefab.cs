@@ -74,6 +74,13 @@ namespace ProcEngines
             return Cp;
         }
 
+        public void Print()
+        {
+            Debug.Log("EngineDataPrefab:\nOFRatio: " + OFRatio + "\nchamPresMPa: " + chamberPresMPa + "\nChamTempK: " + chamberTempK
+                + "\nNozzlePresMPa: " + nozzlePresMPa + "\nNozzleTempK: " + nozzleTempK + "\nNozzleMW: " + nozzleMWgMol
+                + "\nNozzleGamma: " + nozzleGamma + "\nNozzleMach: " + nozzleMach);
+        }
+
         public static EngineDataPrefab operator +(EngineDataPrefab a, EngineDataPrefab b)
         {
             EngineDataPrefab prefab = new EngineDataPrefab();

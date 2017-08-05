@@ -36,7 +36,7 @@ namespace ProcEngines
         float chamberPresMPa = 5;
         float lastChamPres = 5;
 
-        [KSPField(guiName = "Area Ratio", isPersistant = true, guiActiveEditor = true, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 250.0f, minValue = 1.3f, scene = UI_Scene.All, stepIncrement = 0.1f)]
+        [KSPField(guiName = "Area Ratio", isPersistant = true, guiActiveEditor = true, guiActive = false), UI_FloatRange(affectSymCounterparts = UI_Scene.All, maxValue = 20.0f, minValue = 1.3f, scene = UI_Scene.All, stepIncrement = 0.1f)]
         float areaRatio = 7;
         float lastAreaRatio = 7;
 
@@ -52,18 +52,30 @@ namespace ProcEngines
         float thrustVac;
         [KSPField(guiName = "Thrust SL", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float thrustSL;
-        [KSPField(guiName = "Thrust Opt", isPersistant = true, guiActiveEditor = true, guiActive = false)]
-        float thrustOpt;
         [KSPField(guiName = "Isp Vac", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float IspVac;
         [KSPField(guiName = "Isp SL", isPersistant = true, guiActiveEditor = true, guiActive = false)]
         float IspSL;
-        [KSPField(guiName = "Isp Opt", isPersistant = true, guiActiveEditor = true, guiActive = false)]
-        float IspOpt;
+        [KSPField(guiName = "Mass Flow Total", isPersistant = true, guiActiveEditor = true, guiActive = false)]
+        float MassFlowTotal;
+        [KSPField(guiName = "Mass Flow Chamber", isPersistant = true, guiActiveEditor = true, guiActive = false)]
+        float MassFlowChamber;
+        [KSPField(guiName = "Ex Vel", isPersistant = true, guiActiveEditor = true, guiActive = false)]
+        float exVel;
 
         void Start()
         {
             procEngineConfig = new EngineConfigGasGen(mixture, oFRatio);
+            thrustVac = (float)procEngineConfig.ThrustVac;
+            thrustSL = (float)procEngineConfig.ThrustSL;
+
+            IspVac = (float)procEngineConfig.SpecImpulseVac;
+            IspSL = (float)procEngineConfig.SpecImpulseSL;
+
+            MassFlowChamber = (float)procEngineConfig.MassFlowChamber;
+            MassFlowTotal = (float)procEngineConfig.MassFlowTotal;
+
+            exVel = (float)procEngineConfig.exhaustVelocityOpt;
         }
 
         void FixedUpdate()
@@ -72,11 +84,14 @@ namespace ProcEngines
             {
                 thrustVac = (float)procEngineConfig.ThrustVac;
                 thrustSL = (float)procEngineConfig.ThrustSL;
-                thrustOpt = (float)procEngineConfig.ThrustOpt;
 
                 IspVac = (float)procEngineConfig.SpecImpulseVac;
                 IspSL = (float)procEngineConfig.SpecImpulseSL;
-                IspOpt = (float)procEngineConfig.SpecImpulseOpt;
+
+                MassFlowChamber = (float)procEngineConfig.MassFlowChamber;
+                MassFlowTotal = (float)procEngineConfig.MassFlowTotal;
+
+                exVel = (float)procEngineConfig.exhaustVelocityOpt;
             }
         }
 

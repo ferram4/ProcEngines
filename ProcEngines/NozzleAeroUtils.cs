@@ -46,10 +46,10 @@ namespace ProcEngines
             return AreaRatioFromMach(mach, gamma_DesiredAreaRatio[0]) - gamma_DesiredAreaRatio[1];
         }
         //solves the mach-area relation for mach number using Brent's Method
-        public static double MachFromAreaRatio(double desiredAreaRatio, double gamma, double epsilon = 0.001, int maxIter = int.MaxValue)
+        public static double MachFromAreaRatio(double desiredAreaRatio, double gamma, double epsilon = 0.0001, int maxIter = int.MaxValue)
         {
             double[] args = new double[] { gamma, desiredAreaRatio };
-            return MathUtils.BrentsMethod(AreaRatioFromMachDiff, args, 1.1, 1000.0);
+            return MathUtils.BrentsMethod(AreaRatioFromMachDiff, args, 1.1, 500.0, epsilon, maxIter);
         }
     }
 }

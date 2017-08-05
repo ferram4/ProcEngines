@@ -35,7 +35,10 @@ namespace ProcEngines
             fb = func(b, args);
 
             if (fa * fb >= 0)
+            {
+                Debug.LogError("[ProcEngines] Function not properly bounded");
                 return 0;
+            }
 
             if (Math.Abs(fa) < Math.Abs(fb))
             {

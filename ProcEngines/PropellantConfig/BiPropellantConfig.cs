@@ -91,7 +91,7 @@ namespace ProcEngines.PropellantConfig
 
             for (int i = 0; i < mixtureDataNodes.Length; ++i)
             {
-                mixtureData[i] = new BiPropMixtureRatioData(mixtureDataNodes[i], mixtureTitle);
+                mixtureData[i] = new BiPropMixtureRatioData(mixtureDataNodes[i], mixtureTitle, frozenAreaRatio);
                 mixtureOFRatios[i] = mixtureData[i].OFRatio;
             }
 
