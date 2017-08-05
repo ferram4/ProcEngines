@@ -23,7 +23,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace ProcEngines.PropellantConfigs
+namespace ProcEngines.PropellantConfig
 {
     public class BiPropellantConfig
     {

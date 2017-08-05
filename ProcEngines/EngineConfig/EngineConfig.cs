@@ -22,7 +22,7 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using ProcEngines.PropellantConfigs;
+using ProcEngines.PropellantConfig;
 
 namespace ProcEngines.EngineConfig
 {

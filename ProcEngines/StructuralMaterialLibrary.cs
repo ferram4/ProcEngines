@@ -23,7 +23,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using KSP;
-using ProcEngines.PropellantConfigs;
+using ProcEngines.PropellantConfig;
 
 namespace ProcEngines
 {
