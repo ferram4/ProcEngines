@@ -66,9 +66,11 @@ namespace ProcEngines.EngineConfig
                 biPropConfig.GetOxDensity(),
                 biPropConfig.GetFuelDensity()};
 
-            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp_Dens, 0, 0.25 * massFlowChamber);
+            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp_Dens, 0, 0.25 * massFlowChamber, 0.000001, int.MaxValue);
 
             massFlowTotal += turbineMassFlow;
+            overallOFRatio *= massFlowChamber / massFlowTotal;
+            overallOFRatio += gasGenOFRatio_gammaPower_Cp_Dens[0] * turbineMassFlow / massFlowTotal;
         }
 
         double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp_Dens)

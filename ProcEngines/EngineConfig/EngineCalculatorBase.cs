@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using ProcEngines.PropellantConfig;
+using ProcEngines.EngineGUI;
 
 namespace ProcEngines.EngineConfig
 {
@@ -35,7 +36,7 @@ namespace ProcEngines.EngineConfig
         public BiPropellantConfig biPropConfig;
         public EngineDataPrefab enginePrefab;
 
-        public double oFRatio;
+        public double chamberOFRatio;
         public double chamberPresMPa;
         public double throatDiameter;
         public double areaRatio;
@@ -71,17 +72,26 @@ namespace ProcEngines.EngineConfig
         protected double turbineMassFlow;
         protected double turbinePower;
 
+        double minThrottle = 1.0;
+        double minThrustVac;
+        FloatCurve throttleInjectorCurve;
+        static double currentMinThrottleTech = 0.1;
+        
         public double thrustVac;
         public double thrustSL;
         public double massFlowTotal;
         public double specImpulseVac;
         public double specImpulseSL;
+        public double overallOFRatio;
 
+        #region Constructor
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
             SetEngineProperties(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter);
         }
+        #endregion
 
+        #region EngineParameterUpdate
         public void SetEngineProperties(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
             bool unchanged = true;
@@ -95,8 +105,8 @@ namespace ProcEngines.EngineConfig
             if (oFRatio > biPropConfig.ChamberOFLimitRich)
                 oFRatio = biPropConfig.ChamberOFLimitRich;
 
-            unchanged &= this.oFRatio == oFRatio;
-            this.oFRatio = oFRatio;
+            unchanged &= this.chamberOFRatio == oFRatio;
+            this.chamberOFRatio = oFRatio;
 
             if (chamberPresMPa > biPropConfig.ChamberPresLimHigh)
                 chamberPresMPa = biPropConfig.ChamberPresLimHigh;
@@ -119,6 +129,23 @@ namespace ProcEngines.EngineConfig
                 CalculateEngineProperties();
         }
 
+        void UpdateThrottleInjectorProperties(double minThrottle, double techLevel)
+        {
+            if (minThrottle < currentMinThrottleTech)
+                minThrottle = currentMinThrottleTech;
+            if (minThrottle > 1.0)
+                minThrottle = 1.0;
+
+            if (this.minThrottle == minThrottle)
+                return;
+
+
+            this.minThrottle = minThrottle;
+            UpdateInjectorPerformance();
+            CalculateEngineProperties();
+        }
+        #endregion
+
         public virtual string EngineCalculatorType()
         {
             return "NULL";
@@ -128,6 +155,7 @@ namespace ProcEngines.EngineConfig
         {
         }
 
+        #region ChamberPerformanceCalc
         protected void CalculateMainCombustionChamberParameters()
         {
             //Calc geometry
@@ -136,7 +164,7 @@ namespace ProcEngines.EngineConfig
             nozzleDiameter = Math.Sqrt(nozzleArea / (0.25 * Math.PI));
 
             //Generate engine prefab for this OF ratio and cham pres
-            enginePrefab = biPropConfig.CalcPrefabData(oFRatio, chamberPresMPa);
+            enginePrefab = biPropConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
 
             //Calc mass flow for a choked nozzle
             massFlowChamber = (enginePrefab.nozzleGamma + 1.0) / (enginePrefab.nozzleGamma - 1.0);
@@ -147,10 +175,11 @@ namespace ProcEngines.EngineConfig
             massFlowChamber *= enginePrefab.chamberPresMPa * throatArea;
             massFlowChamber *= 1000.0;       //convert from 1000 t/s (due to MPa) to t/s
 
-            massFlowChamberFuel = massFlowChamber / (oFRatio + 1.0);
-            massFlowChamberOx = massFlowChamberFuel * oFRatio;
+            massFlowChamberFuel = massFlowChamber / (chamberOFRatio + 1.0);
+            massFlowChamberOx = massFlowChamberFuel * chamberOFRatio;
 
             massFlowTotal = massFlowChamber;
+            overallOFRatio = chamberOFRatio;
         }
 
         protected void CalculateEngineAndNozzlePerformanceProperties()
@@ -173,49 +202,29 @@ namespace ProcEngines.EngineConfig
 
             thrustVac = exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0;
             thrustSL = exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0;
+            minThrustVac = thrustVac * minThrottle;
 
             specImpulseVac = thrustVac / (massFlowTotal * G0);
             specImpulseSL = thrustSL / (massFlowTotal * G0);
         }
+        #endregion
 
-        /*void CalculatePreBurnerParameters(bool runOxRich)
+        #region ThrottleAndInjector
+        void UpdateInjectorPerformance()
         {
-            double injectorPressureDrop = 0.3;          //TODO: make injector pres drop vary with throttle capability, tech level
+            if(throttleInjectorCurve == null)
+            {
+                throttleInjectorCurve = new FloatCurve();
+                throttleInjectorCurve.Add(0.1f, 0.67f, -0.65f, -0.65f);
+                throttleInjectorCurve.Add(1f, 0.2f, 0f, 0);
+            }
 
-            double preburnerTurbineOutputPresMPa = chamberPresMPa * (1.0 + injectorPressureDrop);
+            injectorPressureRatioDrop = throttleInjectorCurve.Evaluate((float)minThrottle);
+            //TODO: handle techlevel
+        }
+        #endregion
 
-
-
-            double turbineInletTempK = 1000.0;             //TODO: make variable, add film cooling reqs for temps above 800
-
-            IteratePreburnerAndTurbinePerformance(turbineInletTempK, preburnerTurbineOutputPresMPa);
-        }*/
-
-        /*void IteratePreburnerAndTurbinePerformance(double turbineInletTempK, double turbineOutputPres, double epsilon = 0.001)
-        {
-            double regenerativeCoolingPresDrop = 0.15;  //TODO: make cooling pres draop vary with cooling needs, tech level
-            double tankPresMPa = 0.2;                   //TODO: make variable of some kind;
-
-            double preburnerPressureMPa = turbineOutputPres * turbinePresRatio;    //TODO: allow separate ox, fuel turbines
-
-            double oxPumpPresRiseMPa = preburnerPressureMPa - tankPresMPa;
-            double fuelPumpPresRiseMPa = preburnerPressureMPa * (1.0 + regenerativeCoolingPresDrop) - tankPresMPa;      //assume that only fuel is used for regen cooling
-
-            double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
-
-            double oxPumpPower = massFlowChamberOx * oxPumpPresRiseMPa * 1000000.0 / (propConfig.GetOxDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            double fuelPumpPower = massFlowChamberFuel * fuelPumpPresRiseMPa * 1000000.0 / (propConfig.GetFuelDensity() * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-
-            double turbineEfficiency = 0.7;             //TODO: make vary with tech level
-            double turbinePowerReq = (oxPumpPower + fuelPumpPower) / turbineEfficiency;
-
-            EngineDataPrefab combustorPrefab = propConfig.CalcDataAtPresAndTemp(preburnerPressureMPa, turbineInletTempK, false);
-
-            double turbineMassFlow = massFlowChamberOx * (1 + 1/combustorPrefab.OFRatio);
-            double turbineCp = combustorPrefab.CalculateCp();
-            double turbineOutputPower = turbineEfficiency * turbineMassFlow * turbineCp * (1.0 - Math.Pow(turbinePresRatio, combustorPrefab.nozzleGamma / (combustorPrefab.nozzleGamma - 1.0)));
-        }*/
-
+        #region EngineDimensioning
         void CalculateCombustionChamberDimensions()
         {
             double characteristicLength = 1.27;     //TODO: make variable in BiPropellantConfig and take from there
@@ -251,5 +260,56 @@ namespace ProcEngines.EngineConfig
 
             return areaCombustionChamber;
         }
+        #endregion
+
+        #region GUI
+        bool showThrottleInjector = false;
+        bool showChamNozzleDesign = false;
+
+        public virtual void CycleEngineGUI()
+        {
+            GeneralThrustChamberAndNozzleParameters();
+        }
+        
+        void GeneralThrustChamberAndNozzleParameters()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(GUILayout.Width(299));
+            if (GUILayout.Button("Chamber And Nozzle Design"))
+                showChamNozzleDesign = !showChamNozzleDesign;
+            if (showChamNozzleDesign)
+            {
+                GUILayout.Label("Would you really call him 'sentient'? NOOOO");
+            }
+            if (GUILayout.Button("Throttling and Injector"))
+                showThrottleInjector = !showThrottleInjector;
+            if(showThrottleInjector)
+            {
+                double minThrottleTmp = minThrottle;
+                minThrottleTmp = GUIUtils.TextEntryForDoubleWithButtons("Min Throttle:", 125, minThrottleTmp, 0.01, 0.1, 75);
+                //Min Vac Thrust
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Min Vac Thrust: ", GUILayout.Width(125));
+                GUILayout.Label(minThrustVac.ToString("F3") + " kN");
+                GUILayout.EndHorizontal();
+
+                //Injector Pres. Loss
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Injector % Pres Loss: ", GUILayout.Width(125));
+                GUILayout.Label((injectorPressureRatioDrop * 100.0).ToString("F1") + " %");
+                GUILayout.EndHorizontal();
+
+                UpdateThrottleInjectorProperties(minThrottleTmp, 1.0);
+            }
+
+
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical(GUILayout.Width(299));
+
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+        }
+        #endregion
     }
 }

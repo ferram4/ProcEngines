@@ -58,7 +58,7 @@ namespace ProcEngines.EngineGUI
 
             if (GUILayout.Button("▸"))
                 prevValue += smallInc;
-            if (GUILayout.Button("▸"))
+            if (GUILayout.Button("▸▸"))
                 prevValue += bigInc;
 
             GUILayout.EndHorizontal();

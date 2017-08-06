@@ -92,7 +92,7 @@ namespace ProcEngines.EngineGUI
             if (engineCalcBase == null)
             {
                 BiPropellantConfig biprop = biPropellantConfigs.ActiveSelection;
-                engineCalcBase = new EngineCalculatorGasGen(biprop, (biprop.ChamberOFLimitLean + biprop.ChamberOFLimitRich) * 0.5, 4, 5, 0.1);
+                engineCalcBase = new EngineCalculatorGasGen(biprop, (biprop.ChamberOFLimitLean + biprop.ChamberOFLimitRich) * 0.5, 4, 5, 0.3);
             }
             else
             {
@@ -113,10 +113,17 @@ namespace ProcEngines.EngineGUI
 
         void GUIWindow(int id)
         {
+            EngineName();
             GeneralEngineParameters();
+            engineCalcBase.CycleEngineGUI();
             GUI.DragWindow();
         }
 
+
+        void EngineName()
+        {
+            GUILayout.TextField("Engine Name");
+        }
 
         void GeneralEngineParameters()
         {
@@ -124,7 +131,7 @@ namespace ProcEngines.EngineGUI
             GUILayout.BeginVertical(GUILayout.Width(299));
 
             double chamberPresMPa = engineCalcBase.chamberPresMPa;
-            double oFRatio = engineCalcBase.oFRatio;
+            double chamberoFRatio = engineCalcBase.chamberOFRatio;
             double throatDiam = engineCalcBase.throatDiameter;
             double areaRatio = engineCalcBase.areaRatio;
 
@@ -141,26 +148,15 @@ namespace ProcEngines.EngineGUI
             GUILayout.EndHorizontal();
 
             //O/F Ratio
-            GUILayout.BeginHorizontal();
-            oFRatio = GUIUtils.TextEntryForDoubleWithButtons("O/F Ratio:", 125, oFRatio, 0.01, 0.1, 75);
-            GUILayout.EndHorizontal();
-            
+            chamberoFRatio = GUIUtils.TextEntryForDoubleWithButtons("Chamber O/F Ratio:", 125, chamberoFRatio, 0.01, 0.1, 75);
             //Chamber Pressure
-            GUILayout.BeginHorizontal();
             chamberPresMPa = GUIUtils.TextEntryForDoubleWithButtons("Chamber Pres, MPa:", 125, chamberPresMPa, 0.1, 0.5, 75);
-            GUILayout.EndHorizontal();
-
             //Throat Diameter
-            GUILayout.BeginHorizontal();
             throatDiam = GUIUtils.TextEntryForDoubleWithButtons("Throat Diam, m:", 125, throatDiam, 0.01, 0.1,75);
-            GUILayout.EndHorizontal();
-
             //Area Ratio
-            GUILayout.BeginHorizontal();
-            areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 1, 0.1,75);
-            GUILayout.EndHorizontal();
+            areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 0.1, 1,75);
 
-            engineCalcBase.SetEngineProperties(biPropellantConfigs.ActiveSelection, oFRatio, chamberPresMPa, areaRatio, throatDiam);
+            engineCalcBase.SetEngineProperties(biPropellantConfigs.ActiveSelection, chamberoFRatio, chamberPresMPa, areaRatio, throatDiam);
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical(GUILayout.Width(299));
@@ -168,54 +164,41 @@ namespace ProcEngines.EngineGUI
             //Vac Thrust
             GUILayout.BeginHorizontal();
             GUILayout.Label("Vacuum Thrust: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.thrustVac.ToString("F3"));
-            GUILayout.Label("kN");
+            GUILayout.Label(engineCalcBase.thrustVac.ToString("F3") + " kN");
             GUILayout.EndHorizontal();
 
             //SL Thrust
             GUILayout.BeginHorizontal();
             GUILayout.Label("Sea Lvl Thrust: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.thrustSL.ToString("F3"));
-            GUILayout.Label("kN");
+            GUILayout.Label(engineCalcBase.thrustSL.ToString("F3") + " kN");
             GUILayout.EndHorizontal();
 
             //Vac Isp
             GUILayout.BeginHorizontal();
             GUILayout.Label("Vacuum Isp: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.specImpulseVac.ToString("F3"));
-            GUILayout.Label("s");
+            GUILayout.Label(engineCalcBase.specImpulseVac.ToString("F3")+ " s");
             GUILayout.EndHorizontal();
 
             //SL Isp
             GUILayout.BeginHorizontal();
             GUILayout.Label("Sea Lvl Isp: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.specImpulseSL.ToString("F3"));
-            GUILayout.Label("s");
-            GUILayout.EndHorizontal();
-
-            //Exit Pressure
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Nozzle Exit Pres: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.exitPressureMPa.ToString("F3"));
-            GUILayout.Label("MPa");
-            GUILayout.EndHorizontal(); 
-
-            //Exit Diameter
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Nozzle Exit Diam: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.nozzleDiameter.ToString("F3"));
-            GUILayout.Label("m");
+            GUILayout.Label(engineCalcBase.specImpulseSL.ToString("F3") + " s");
             GUILayout.EndHorizontal();
 
             //Total Mass Flow
             GUILayout.BeginHorizontal();
             GUILayout.Label("Total Mass Flow: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.massFlowTotal.ToString("F3"));
-            GUILayout.Label("t/s");
-            GUILayout.EndHorizontal(); 
-            
+            GUILayout.Label(engineCalcBase.massFlowTotal.ToString("F3") + " t/s");
             GUILayout.EndHorizontal();
+
+            //Exit Diameter
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Nozzle Exit Diam: ", GUILayout.Width(125));
+            GUILayout.Label(engineCalcBase.nozzleDiameter.ToString("F3") + " m");
+            GUILayout.EndHorizontal();
+
             GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
         }
 
         void GenerateSkin()
