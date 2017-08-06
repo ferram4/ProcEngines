@@ -22,22 +22,17 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using ProcEngines.EngineConfig;
-using ProcEngines.EngineGUI;
-
 
 namespace ProcEngines
 {
-    class ProceduralEngineModule : PartModule
+    enum PowerCycleEnum
     {
-        public EngineCalculatorBase procEngineConfig;
-        public PowerCycleEnum cycle = PowerCycleEnum.NONE_SELECTED;
-        public string cycleString = "none";
-
-        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Configure Procedural Engine")]
-        void ProcEngineSetup()
-        {
-            EngineGUI.EngineGUI.Instance.SetEngineModule(this);
-        }
+        NONE_SELECTED,
+        PRESSURE_FED,
+        GAS_GENERATOR,
+        COMBUSTION_TAPOFF,
+        STAGED_COMBUSTION,
+        CLOSED_EXPANDER,
+        BLEED_EXPANDER
     }
 }

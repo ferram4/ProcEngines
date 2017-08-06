@@ -22,22 +22,31 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using ProcEngines.EngineConfig;
-using ProcEngines.EngineGUI;
+using ProcEngines.PropellantConfig;
 
-
-namespace ProcEngines
+namespace ProcEngines.EngineConfig
 {
-    class ProceduralEngineModule : PartModule
+    class EngineCalculatorPresFed : EngineCalculatorBase
     {
-        public EngineCalculatorBase procEngineConfig;
-        public PowerCycleEnum cycle = PowerCycleEnum.NONE_SELECTED;
-        public string cycleString = "none";
 
-        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Configure Procedural Engine")]
-        void ProcEngineSetup()
+        public EngineCalculatorPresFed(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
+            : base(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter) { }
+
+        public override string EngineCalculatorType()
         {
-            EngineGUI.EngineGUI.Instance.SetEngineModule(this);
+            return "Pressure Fed";
+        }
+        
+        protected override void CalculateEngineProperties()
+        {
+            CalculateMainCombustionChamberParameters();
+            CalcRequiredTankPressurization();
+            CalculateEngineAndNozzlePerformanceProperties();
+        }
+
+        void CalcRequiredTankPressurization()
+        {
+            tankPresMPa = chamberPresMPa * (1 + injectorPressureRatioDrop);
         }
     }
 }

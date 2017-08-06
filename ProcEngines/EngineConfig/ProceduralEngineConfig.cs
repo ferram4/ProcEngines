@@ -25,21 +25,38 @@ using UnityEngine;
 
 namespace ProcEngines.EngineConfig
 {
-    class EngineConfigPresFed : EngineConfigBase
+    class ProceduralEngineConfig
     {
+        string type;
+        string configuration;
+        float origMass;
 
-        public EngineConfigPresFed(string mixture, double oFRatio) : base(mixture, oFRatio) { }
+        string configurationName;
+        string description;
+        float minThrust;
+        float maxThrust;
+        float heatProduction = 100.0f;
+        float massMult = 1.0f;
 
-        protected override void CalculateEngineProperties()
+        bool ullage = true;
+        bool pressureFed = false;
+        int ignitions = 1;
+
+        struct IgnitionResource
         {
-            CalculateMainCombustionChamberParameters();
-            CalcRequiredTankPressurization();
-            CalculateEngineAndNozzlePerformanceProperties();
+            public string name;
+            public float amount;
+        }
+        List<IgnitionResource> ignitionReqs;
+
+        struct PropellantResource
+        {
+            public string name;
+            public float ratio;
+            public bool DrawGauge;
         }
 
-        void CalcRequiredTankPressurization()
-        {
-            tankPresMPa = chamberPresMPa * (1 + injectorPressureRatioDrop);
-        }
+        float ispV;
+        float ispSL;
     }
 }

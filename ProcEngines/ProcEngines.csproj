@@ -44,12 +44,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EngineConfig\ProceduralEngineConfig.cs" />
+    <Compile Include="EngineGUI\EngineGUI.cs" />
+    <Compile Include="EngineGUI\GUIDropDown.cs" />
+    <Compile Include="EngineGUI\GUIUtils.cs" />
+    <Compile Include="PowerCycleEnum.cs" />
     <Compile Include="ProceduralEngineModule.cs" />
     <Compile Include="PropellantConfig\BiPropellantConfig.cs" />
     <Compile Include="PropellantConfig\BiPropMixtureRatioData.cs" />
-    <Compile Include="EngineConfig\EngineConfig.cs" />
-    <Compile Include="EngineConfig\EngineConfigGasGen.cs" />
-    <Compile Include="EngineConfig\EngineConfigPresFed.cs" />
+    <Compile Include="EngineConfig\EngineCalculatorBase.cs" />
+    <Compile Include="EngineConfig\EngineCalculatorGasGen.cs" />
+    <Compile Include="EngineConfig\EngineCalculatorPresFed.cs" />
     <Compile Include="EngineDataPrefab.cs" />
     <Compile Include="MathUtils.cs" />
     <Compile Include="NozzleAeroUtils.cs" />

@@ -26,24 +26,26 @@ using ProcEngines.PropellantConfig;
 
 namespace ProcEngines.EngineConfig
 {
-    class EngineConfigBase
+    class EngineCalculatorBase
     {
         const double GAS_CONSTANT = 8314.459848;
         const double G0 = 9.80665;
 
-        protected double chamberOFRatio;
         string mixtureTitle;
-        protected BiPropellantConfig biPropConfig;
-        protected EngineDataPrefab enginePrefab;
+        public BiPropellantConfig biPropConfig;
+        public EngineDataPrefab enginePrefab;
 
-        protected double chamberPresMPa;
-        double nozzleDiameter;
-        double nozzleArea;
+        public double oFRatio;
+        public double chamberPresMPa;
+        public double throatDiameter;
+        public double areaRatio;
+
         double throatArea;
-        double areaRatio;
+        double nozzleArea;
+        public double nozzleDiameter;
 
-        public double exhaustVelocityOpt;
-        double exitPressureMPa;
+        double exhaustVelocityOpt;
+        public double exitPressureMPa;
 
         protected double massFlowChamber;
         protected double massFlowChamberOx;
@@ -69,101 +71,59 @@ namespace ProcEngines.EngineConfig
         protected double turbineMassFlow;
         protected double turbinePower;
 
-        double thrustVac;
-        double thrustSL;
-        protected double massFlowTotal;
-        double specImpulseVac;
-        double specImpulseSL;
+        public double thrustVac;
+        public double thrustSL;
+        public double massFlowTotal;
+        public double specImpulseVac;
+        public double specImpulseSL;
 
-        public double ThrustVac { get { return thrustVac; } }
-        public double ThrustSL { get { return thrustSL; } }
-        public double SpecImpulseVac { get { return specImpulseVac; } }
-        public double SpecImpulseSL { get { return specImpulseSL; } }
-        public double MassFlowTotal { get { return massFlowTotal; } }
-        public double MassFlowChamber { get { return massFlowChamber; } }
-
-        public EngineConfigBase(string mixture, double oFRatio)
+        public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
-            chamberPresMPa = 5;
-            areaRatio = 7;
-            nozzleDiameter = 1;
-            this.mixtureTitle = mixture;
-            biPropConfig = PropellantMixtureLibrary.GetBiPropellantConfig(mixtureTitle);
-            this.chamberOFRatio = oFRatio;
-
-            CalculateEngineProperties();
+            SetEngineProperties(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter);
         }
 
-
-        public void SetBipropConfig(string mixtureTitle)
+        public void SetEngineProperties(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
-            this.mixtureTitle = mixtureTitle;
-            biPropConfig = PropellantMixtureLibrary.GetBiPropellantConfig(mixtureTitle);
-            if (chamberOFRatio < biPropConfig.ChamberOFLimitLean)
-                chamberOFRatio = biPropConfig.ChamberOFLimitLean;
-            if (chamberOFRatio > biPropConfig.ChamberOFLimitRich)
-                chamberOFRatio = biPropConfig.ChamberOFLimitRich;
+            bool unchanged = true;
 
-            CalculateEngineProperties();
-        }
+            unchanged &= biPropConfig == mixture;
+            this.mixtureTitle = mixture.MixtureTitle;
+            biPropConfig = mixture;
 
-        public void SetExpansionRatio(double areaRatio)
-        {
-            if (areaRatio < biPropConfig.FrozenAreaRatio)
-                areaRatio = biPropConfig.FrozenAreaRatio;
-
-            this.areaRatio = areaRatio;
-
-            CalculateEngineProperties();
-        }
-
-        public void SetNozzleDiameter(double diameter)
-        {
-            nozzleDiameter = diameter;
-
-            CalculateEngineProperties();
-        }
-
-        public void SetChamberPressure(double chamPresMPa)
-        {
-            if (chamPresMPa > biPropConfig.ChamberPresLimHigh)
-                chamPresMPa = biPropConfig.ChamberPresLimHigh;
-            if (chamPresMPa < biPropConfig.ChamberPresLimLow)
-                chamPresMPa = biPropConfig.ChamberPresLimLow;
-
-            chamberPresMPa = chamPresMPa;
-
-            CalculateEngineProperties();
-        }
-
-        public void SetOFRatio(double oFRatio)
-        {
             if (oFRatio < biPropConfig.ChamberOFLimitLean)
                 oFRatio = biPropConfig.ChamberOFLimitLean;
             if (oFRatio > biPropConfig.ChamberOFLimitRich)
                 oFRatio = biPropConfig.ChamberOFLimitRich;
 
-            this.chamberOFRatio = oFRatio;
+            unchanged &= this.oFRatio == oFRatio;
+            this.oFRatio = oFRatio;
 
-            CalculateEngineProperties();
-        }
+            if (chamberPresMPa > biPropConfig.ChamberPresLimHigh)
+                chamberPresMPa = biPropConfig.ChamberPresLimHigh;
+            if (chamberPresMPa < biPropConfig.ChamberPresLimLow)
+                chamberPresMPa = biPropConfig.ChamberPresLimLow;
 
-        public void SetEngineProperties(double areaRatio, double diameter, double chamPresMPa)
-        {
+            unchanged &= this.chamberPresMPa == oFRatio;
+            this.chamberPresMPa = chamberPresMPa;
+
             if (areaRatio < biPropConfig.FrozenAreaRatio)
                 areaRatio = biPropConfig.FrozenAreaRatio;
 
+            unchanged &= this.areaRatio == areaRatio;
             this.areaRatio = areaRatio;
-            nozzleDiameter = diameter;
 
-            if (chamPresMPa > biPropConfig.ChamberPresLimHigh)
-                chamPresMPa = biPropConfig.ChamberPresLimHigh;
-            if (chamPresMPa < biPropConfig.ChamberPresLimLow)
-                chamPresMPa = biPropConfig.ChamberPresLimLow;
+            unchanged &= this.throatDiameter == throatDiameter;
+            this.throatDiameter = throatDiameter;
 
-            CalculateEngineProperties();
+            if(!unchanged)
+                CalculateEngineProperties();
         }
-        
+
+        public virtual string EngineCalculatorType()
+        {
+            return "NULL";
+        }
+
         protected virtual void CalculateEngineProperties()
         {
         }
@@ -171,11 +131,12 @@ namespace ProcEngines.EngineConfig
         protected void CalculateMainCombustionChamberParameters()
         {
             //Calc geometry
-            nozzleArea = nozzleDiameter * nozzleDiameter * 0.25 * Math.PI;
-            throatArea = nozzleArea / areaRatio;
+            throatArea = throatDiameter * throatDiameter * 0.25 * Math.PI;
+            nozzleArea = throatArea * areaRatio;
+            nozzleDiameter = Math.Sqrt(nozzleArea / (0.25 * Math.PI));
 
             //Generate engine prefab for this OF ratio and cham pres
-            enginePrefab = biPropConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
+            enginePrefab = biPropConfig.CalcPrefabData(oFRatio, chamberPresMPa);
 
             //Calc mass flow for a choked nozzle
             massFlowChamber = (enginePrefab.nozzleGamma + 1.0) / (enginePrefab.nozzleGamma - 1.0);
@@ -186,8 +147,8 @@ namespace ProcEngines.EngineConfig
             massFlowChamber *= enginePrefab.chamberPresMPa * throatArea;
             massFlowChamber *= 1000.0;       //convert from 1000 t/s (due to MPa) to t/s
 
-            massFlowChamberFuel = massFlowChamber / (chamberOFRatio + 1.0);
-            massFlowChamberOx = massFlowChamberFuel * chamberOFRatio;
+            massFlowChamberFuel = massFlowChamber / (oFRatio + 1.0);
+            massFlowChamberOx = massFlowChamberFuel * oFRatio;
 
             massFlowTotal = massFlowChamber;
         }

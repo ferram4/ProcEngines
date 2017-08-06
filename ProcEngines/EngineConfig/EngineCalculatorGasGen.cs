@@ -22,12 +22,19 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ProcEngines.PropellantConfig;
 
 namespace ProcEngines.EngineConfig
 {
-    class EngineConfigGasGen : EngineConfigBase
+    class EngineCalculatorGasGen : EngineCalculatorBase
     {
-        public EngineConfigGasGen(string mixture, double oFRatio) : base(mixture, oFRatio) { }
+        public EngineCalculatorGasGen(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
+            : base(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter) { }
+
+        public override string EngineCalculatorType()
+        {
+            return "Gas Generator";
+        }
 
         protected override void CalculateEngineProperties()
         {
@@ -69,8 +76,6 @@ namespace ProcEngines.EngineConfig
             double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
             double turbineEfficiency = 0.7;             //TODO: make vary with tech level
 
-            Debug.Log("--------");
-
             double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp_Dens[0] + 1.0);
             double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp_Dens[0];
 
@@ -81,16 +86,12 @@ namespace ProcEngines.EngineConfig
             fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[4] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
 
             turbinePower = (oxPumpPower + fuelPumpPower) / (turbineEfficiency);
-            Debug.Log(turbinePower);
 
             double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, -gasGenOFRatio_gammaPower_Cp_Dens[1]));
             checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp_Dens[2] * turbineInletTempK;
             checkTurbineMassFlow = turbinePower / (1000.0 * checkTurbineMassFlow);   //convert to tonnes
 
             double massFlowDiff = (checkTurbineMassFlow - turbineMassFlow);
-
-            Debug.Log(massFlowDiff);
-
             return massFlowDiff;
         }
 
