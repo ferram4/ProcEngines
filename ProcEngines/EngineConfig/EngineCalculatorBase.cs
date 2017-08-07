@@ -296,7 +296,7 @@ namespace ProcEngines.EngineConfig
             }
 
             RightSideEngineGUI();
-            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
 
