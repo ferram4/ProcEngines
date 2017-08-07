@@ -58,19 +58,9 @@ namespace ProcEngines.EngineConfig
         double combustionChamberMassT;
         double nozzleMassT;
 
-        protected double injectorPressureRatioDrop = 0.3;     //TODO: make injector pres drop vary with throttle capability, tech level
+        protected double injectorPressureRatioDrop = 0.2;     //TODO: make injector pres drop vary with throttle capability, tech level
         protected double regenerativeCoolingPresDrop = 0.15;  //TODO: make cooling pres draop vary with cooling needs, tech level
         protected double tankPresMPa = 0.2;                   //TODO: make variable of some kind;
-
-        protected double oxPumpPresRiseMPa;
-        protected double fuelPumpPresRiseMPa;
-        protected double oxPumpPower;
-        protected double fuelPumpPower;
-
-        protected double turbinePresRatio;
-        protected double turbineInletTempK = 1000;
-        protected double turbineMassFlow;
-        protected double turbinePower;
 
         double minThrottle = 1.0;
         double minThrustVac;
@@ -83,6 +73,8 @@ namespace ProcEngines.EngineConfig
         public double specImpulseVac;
         public double specImpulseSL;
         public double overallOFRatio;
+
+        public double overallEfficiency = 0.9;
 
         #region Constructor
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
@@ -200,8 +192,8 @@ namespace ProcEngines.EngineConfig
 
             exitPressureMPa = Math.Pow(isentropicRatio, enginePrefab.nozzleGamma / (enginePrefab.nozzleGamma - 1.0)) * enginePrefab.nozzlePresMPa;
 
-            thrustVac = exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0;
-            thrustSL = exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0;
+            thrustVac = (exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0) * overallEfficiency;
+            thrustSL = (exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0) * overallEfficiency;
             minThrustVac = thrustVac * minThrottle;
 
             specImpulseVac = thrustVac / (massFlowTotal * G0);
@@ -263,30 +255,31 @@ namespace ProcEngines.EngineConfig
         #endregion
 
         #region GUI
-        bool showThrottleInjector = false;
-        bool showChamNozzleDesign = false;
+        static bool showThrottleInjector = false;
+        static bool showChamNozzleDesign = false;
 
-        public virtual void CycleEngineGUI()
-        {
-            GeneralThrustChamberAndNozzleParameters();
-        }
-        
-        void GeneralThrustChamberAndNozzleParameters()
+        public void CycleEngineGUI()
         {
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical(GUILayout.Width(299));
+
             if (GUILayout.Button("Chamber And Nozzle Design"))
                 showChamNozzleDesign = !showChamNozzleDesign;
             if (showChamNozzleDesign)
             {
                 GUILayout.Label("Would you really call him 'sentient'? NOOOO");
             }
+
+            LeftSideEngineGUI();
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical(GUILayout.Width(299));
             if (GUILayout.Button("Throttling and Injector"))
                 showThrottleInjector = !showThrottleInjector;
-            if(showThrottleInjector)
+            if (showThrottleInjector)
             {
                 double minThrottleTmp = minThrottle;
-                minThrottleTmp = GUIUtils.TextEntryForDoubleWithButtons("Min Throttle:", 125, minThrottleTmp, 0.01, 0.1, 75);
+                minThrottleTmp = GUIUtils.TextEntryForDoubleWithButtons("Min Throttle:", 90, minThrottleTmp, 0.01, 0.1, 75);
                 //Min Vac Thrust
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Min Vac Thrust: ", GUILayout.Width(125));
@@ -295,21 +288,21 @@ namespace ProcEngines.EngineConfig
 
                 //Injector Pres. Loss
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Injector % Pres Loss: ", GUILayout.Width(125));
+                GUILayout.Label("Injector % Pres Loss: ", GUILayout.Width(90));
                 GUILayout.Label((injectorPressureRatioDrop * 100.0).ToString("F1") + " %");
                 GUILayout.EndHorizontal();
 
                 UpdateThrottleInjectorProperties(minThrottleTmp, 1.0);
             }
 
-
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical(GUILayout.Width(299));
-
-            GUILayout.EndVertical();
+            RightSideEngineGUI();
+            GUILayout.EndScrollView();
             GUILayout.EndHorizontal();
         }
+
+        protected virtual void LeftSideEngineGUI() { }
+        protected virtual void RightSideEngineGUI() { }
+
         #endregion
     }
 }

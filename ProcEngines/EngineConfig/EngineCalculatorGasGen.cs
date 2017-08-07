@@ -23,11 +23,29 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using ProcEngines.PropellantConfig;
+using ProcEngines.EngineGUI;
 
 namespace ProcEngines.EngineConfig
 {
     class EngineCalculatorGasGen : EngineCalculatorBase
     {
+        double oxPumpPresRiseMPa;
+        double fuelPumpPresRiseMPa;
+        double oxPumpPowerW;
+        double fuelPumpPowerW;
+
+        double turbinePresRatio;
+        double turbineInletTempK = 1000;
+        double turbineMassFlow;
+        double turbinePower;
+
+        static double maxTurbineInletK = 1350;
+        static double minTurbineInletK = 700;
+
+        EngineDataPrefab gasGenPrefab;
+        double massFlowFrac;
+        bool oxRich;
+
         public EngineCalculatorGasGen(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
             : base(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter) { }
 
@@ -36,14 +54,44 @@ namespace ProcEngines.EngineConfig
             return "Gas Generator";
         }
 
+        #region EnginePerformanceCalc
         protected override void CalculateEngineProperties()
         {
             CalculateMainCombustionChamberParameters();
             AssumePumpPressureRise();
-            SolveGasGenTurbine(false);
+            SolveGasGenTurbine(oxRich);
             CalculateEngineAndNozzlePerformanceProperties();
         }
 
+        void UpdateGasGenProperties(int oxRichInt, double turbineInletTemp)
+        {
+            bool unchanged = true;
+
+            if(oxRichInt <= 0 && oxRich)
+            {
+                oxRich = false;
+                unchanged = false;
+            }
+            else if (oxRichInt > 0 && !oxRich)
+            {
+                oxRich = true;
+                unchanged = false;
+            }
+
+            if (turbineInletTemp < minTurbineInletK)
+                turbineInletTemp = minTurbineInletK;
+            if (turbineInletTemp > maxTurbineInletK)
+                turbineInletTemp = maxTurbineInletK;
+
+            unchanged &= turbineInletTemp == turbineInletTempK;
+            turbineInletTempK = turbineInletTemp;
+
+            if (!unchanged)
+                CalculateEngineProperties();
+        }
+        #endregion
+
+        #region TurbopumpCalc
         void AssumePumpPressureRise()
         {
             oxPumpPresRiseMPa = chamberPresMPa * (1.0 + injectorPressureRatioDrop) - tankPresMPa;
@@ -52,9 +100,13 @@ namespace ProcEngines.EngineConfig
 
         void SolveGasGenTurbine(bool oxRich)
         {
-            turbinePresRatio = chamberPresMPa / (0.2);       //assume ~2 atm ~= 0.2 MPa backpressure
+            double gasGenInjectorPresDrop = injectorPressureRatioDrop * 2.0 / 3.0;
+            if (gasGenInjectorPresDrop < 0.2)
+                gasGenInjectorPresDrop = 0.2;
 
-            EngineDataPrefab gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
+            turbinePresRatio = chamberPresMPa * (1.0 + gasGenInjectorPresDrop) / (0.2);       //assume ~2 atm ~= 0.2MPa backpressure
+
+            gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(chamberPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
 
             /*double gasGenOFRatio = gasGenPrefab.OFRatio;
             double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
@@ -71,12 +123,13 @@ namespace ProcEngines.EngineConfig
             massFlowTotal += turbineMassFlow;
             overallOFRatio *= massFlowChamber / massFlowTotal;
             overallOFRatio += gasGenOFRatio_gammaPower_Cp_Dens[0] * turbineMassFlow / massFlowTotal;
+            massFlowFrac = turbineMassFlow / massFlowTotal;
         }
 
         double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp_Dens)
         {
-            double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
-            double turbineEfficiency = 0.7;             //TODO: make vary with tech level
+            double pumpEfficiency = 0.69;                //TODO: make vary with fuel type and with tech level
+            double turbineEfficiency = 0.53;             //TODO: make vary with tech level
 
             double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp_Dens[0] + 1.0);
             double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp_Dens[0];
@@ -84,10 +137,10 @@ namespace ProcEngines.EngineConfig
             double massFlowFuelTotal = turbineMassFlowFuel + massFlowChamberFuel;
             double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
 
-            oxPumpPower = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[3] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            fuelPumpPower = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[4] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            oxPumpPowerW = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[3] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            fuelPumpPowerW = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[4] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
 
-            turbinePower = (oxPumpPower + fuelPumpPower) / (turbineEfficiency);
+            turbinePower = (oxPumpPowerW + fuelPumpPowerW) / (turbineEfficiency);
 
             double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, -gasGenOFRatio_gammaPower_Cp_Dens[1]));
             checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp_Dens[2] * turbineInletTempK;
@@ -96,7 +149,77 @@ namespace ProcEngines.EngineConfig
             double massFlowDiff = (checkTurbineMassFlow - turbineMassFlow);
             return massFlowDiff;
         }
+        #endregion
 
+        #region GUI
+        bool showGasGen = false;
+        bool showTurbopump = false;
 
+        int oxRichInt = 0;
+        static string[] fuelOxRichString = new string[] { "Fuel Rich", "Ox Rich" };
+
+        protected override void LeftSideEngineGUI()
+        {
+            if (GUILayout.Button("Gas Generator Design"))
+                showGasGen = !showGasGen;
+            if (showGasGen)
+            {
+                double tmpTurbineInletTempK = turbineInletTempK;
+                tmpTurbineInletTempK = GUIUtils.TextEntryForDoubleWithButtons("Temperature, K:", 125, tmpTurbineInletTempK, 10, 100, 75);
+
+                //Gas Gen OxRich, FuelRich
+                GUILayout.BeginHorizontal();
+                oxRichInt = GUILayout.SelectionGrid(oxRichInt, fuelOxRichString, 2);
+                GUILayout.EndHorizontal();
+
+                //Gas Gen Pres
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Gas Gen Pres MPa: ", GUILayout.Width(125));
+                GUILayout.Label(gasGenPrefab.chamberPresMPa.ToString("F3"));
+                GUILayout.EndHorizontal();
+                //Gas Gen O/F
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Gas Gen O/F: ", GUILayout.Width(125));
+                GUILayout.Label(gasGenPrefab.OFRatio.ToString("F3"));
+                GUILayout.EndHorizontal();
+                //Gas Gen Mass Flow %
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Gas Gen % Mass Flow: ", GUILayout.Width(125));
+                GUILayout.Label((massFlowFrac * 100.0).ToString("F1") + " %");
+                GUILayout.EndHorizontal();
+
+                UpdateGasGenProperties(oxRichInt, tmpTurbineInletTempK);
+            }
+        }
+
+        protected override void RightSideEngineGUI()
+        {
+            if (GUILayout.Button("Turbopump Design"))
+                showTurbopump = !showTurbopump;
+            if (showTurbopump)
+            {
+                //Turbopump Pump Setup
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Select direct, gear, or 2-turbine");
+                GUILayout.EndHorizontal();
+                
+                //Turbine Pres Ratio
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Turbine Pres Ratio: ", GUILayout.Width(125));
+                GUILayout.Label(turbinePresRatio.ToString("F3"));
+                GUILayout.EndHorizontal();
+                //Ox Pump Power
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Ox Pump Power: ", GUILayout.Width(125));
+                GUILayout.Label((oxPumpPowerW * 0.001).ToString("F1") + " kW");
+                GUILayout.EndHorizontal();
+                //Fuel Pump Power
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Fuel Pump Power: ", GUILayout.Width(125));
+                GUILayout.Label((fuelPumpPowerW * 0.001).ToString("F1") + " kW");
+                GUILayout.EndHorizontal();
+            }
+        }
+        #endregion
     }
 }
