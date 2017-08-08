@@ -44,6 +44,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EngineConfig\NozzleCalculator.cs" />
     <Compile Include="EngineConfig\ProceduralEngineConfig.cs" />
     <Compile Include="EngineGUI\EngineGUI.cs" />
     <Compile Include="EngineGUI\GUIDropDown.cs" />
@@ -57,7 +58,7 @@
     <Compile Include="EngineConfig\EngineCalculatorPresFed.cs" />
     <Compile Include="EngineDataPrefab.cs" />
     <Compile Include="MathUtils.cs" />
-    <Compile Include="NozzleAeroUtils.cs" />
+    <Compile Include="NozzleUtils.cs" />
     <Compile Include="PropellantConfig\PropellantMixtureLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StructuralMaterialLibrary.cs" />

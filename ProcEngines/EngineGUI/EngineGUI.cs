@@ -128,7 +128,7 @@ namespace ProcEngines.EngineGUI
         void GeneralEngineParameters()
         {
             GUILayout.BeginHorizontal();
-            GUILayout.BeginVertical(GUILayout.Width(299));
+            GUILayout.BeginVertical(GUILayout.Width(290));
 
             double chamberPresMPa = engineCalcBase.chamberPresMPa;
             double chamberoFRatio = engineCalcBase.chamberOFRatio;
@@ -148,18 +148,18 @@ namespace ProcEngines.EngineGUI
             GUILayout.EndHorizontal();
 
             //O/F Ratio
-            chamberoFRatio = GUIUtils.TextEntryForDoubleWithButtons("Chamber O/F Ratio:", 125, chamberoFRatio, 0.01, 0.1, 75);
+            chamberoFRatio = GUIUtils.TextEntryForDoubleWithButtons("Chamber O/F Ratio:", 125, chamberoFRatio, 0.01, 0.1, 50);
             //Chamber Pressure
-            chamberPresMPa = GUIUtils.TextEntryForDoubleWithButtons("Chamber Pres, MPa:", 125, chamberPresMPa, 0.1, 0.5, 75);
+            chamberPresMPa = GUIUtils.TextEntryForDoubleWithButtons("Chamber Pres, MPa:", 125, chamberPresMPa, 0.1, 0.5, 50);
             //Throat Diameter
-            throatDiam = GUIUtils.TextEntryForDoubleWithButtons("Throat Diam, m:", 125, throatDiam, 0.01, 0.1,75);
+            throatDiam = GUIUtils.TextEntryForDoubleWithButtons("Throat Diam, m:", 125, throatDiam, 0.01, 0.1, 50);
             //Area Ratio
-            areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 0.1, 1,75);
+            areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 0.1, 1, 50);
 
             engineCalcBase.SetEngineProperties(biPropellantConfigs.ActiveSelection, chamberoFRatio, chamberPresMPa, areaRatio, throatDiam);
             GUILayout.EndVertical();
 
-            GUILayout.BeginVertical(GUILayout.Width(299));
+            GUILayout.BeginVertical(GUILayout.Width(290));
 
             //Vac Thrust
             GUILayout.BeginHorizontal();
@@ -187,8 +187,8 @@ namespace ProcEngines.EngineGUI
 
             //Total Mass Flow
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Total Mass Flow: ", GUILayout.Width(125));
-            GUILayout.Label(engineCalcBase.massFlowTotal.ToString("F3") + " t/s");
+            GUILayout.Label("Overall O/F: ", GUILayout.Width(125));
+            GUILayout.Label(engineCalcBase.overallOFRatio.ToString("F3"));
             GUILayout.EndHorizontal();
 
             //Exit Diameter

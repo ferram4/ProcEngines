@@ -37,7 +37,7 @@ namespace ProcEngines.EngineGUI
             return window;
         }
 
-        public static double TextEntryForDoubleWithButtons(string label, int labelWidth, double prevValue, double smallInc, double bigInc, int fieldWidth)
+        public static double TextEntryForDoubleWithButtons(string label, int labelWidth, double prevValue, double smallInc, double bigInc, int fieldWidth, string format = "F3")
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, GUILayout.Width(labelWidth));
@@ -47,14 +47,12 @@ namespace ProcEngines.EngineGUI
             if (GUILayout.Button("◂"))
                 prevValue -= smallInc;
 
-            string valString = prevValue.ToString("F3");
+            string valString = prevValue.ToString(format);
 
             valString = GUILayout.TextField(valString, GUILayout.Width(fieldWidth));
 
-            if (!Regex.IsMatch(valString, @"^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$"))
-                return prevValue;
-
-            prevValue = double.Parse(valString);
+            if (Regex.IsMatch(valString, @"^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$"))
+                prevValue = double.Parse(valString);
 
             if (GUILayout.Button("▸"))
                 prevValue += smallInc;
@@ -64,7 +62,28 @@ namespace ProcEngines.EngineGUI
             GUILayout.EndHorizontal();
             return prevValue;
         }
-        
+
+        public static int TextEntryForIntWithButtons(string label, int labelWidth, int prevValue, int fieldWidth)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(labelWidth));
+
+            if (GUILayout.Button("◂"))
+                prevValue -= 1;
+
+            string valString = prevValue.ToString("F0");
+
+            valString = GUILayout.TextField(valString, GUILayout.Width(fieldWidth));
+
+            if (Regex.IsMatch(valString, @"^[-+]?[0-9]*"))
+                prevValue = int.Parse(valString);
+
+            if (GUILayout.Button("▸"))
+                prevValue += 1;
+
+            GUILayout.EndHorizontal();
+            return prevValue;
+        }
         
         public static double TextEntryForDouble(string label, int labelWidth, double prevValue)
         {

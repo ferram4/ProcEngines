@@ -45,8 +45,11 @@ namespace ProcEngines.EngineConfig
         double nozzleArea;
         public double nozzleDiameter;
 
+        double effectiveFrozenAreaRatio;
         double exhaustVelocityOpt;
-        public double exitPressureMPa;
+        double exitPressureMPa;
+
+        double nozzleExtensionArea;
 
         protected double massFlowChamber;
         protected double massFlowChamberOx;
@@ -66,6 +69,8 @@ namespace ProcEngines.EngineConfig
         double minThrustVac;
         FloatCurve throttleInjectorCurve;
         static double currentMinThrottleTech = 0.1;
+
+        int ignitionCount = 1;
         
         public double thrustVac;
         public double thrustSL;
@@ -74,12 +79,13 @@ namespace ProcEngines.EngineConfig
         public double specImpulseSL;
         public double overallOFRatio;
 
-        public double overallEfficiency = 0.9;
+        public double overallEfficiency = 1.0;
 
         #region Constructor
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
             SetEngineProperties(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter);
+            nozzleExtensionArea = areaRatio;
         }
         #endregion
 
@@ -112,7 +118,10 @@ namespace ProcEngines.EngineConfig
                 areaRatio = biPropConfig.FrozenAreaRatio;
 
             unchanged &= this.areaRatio == areaRatio;
+            double extensionRatio = nozzleExtensionArea / this.areaRatio;
+
             this.areaRatio = areaRatio;
+            nozzleExtensionArea = extensionRatio * this.areaRatio;
 
             unchanged &= this.throatDiameter == throatDiameter;
             this.throatDiameter = throatDiameter;
@@ -134,6 +143,24 @@ namespace ProcEngines.EngineConfig
 
             this.minThrottle = minThrottle;
             UpdateInjectorPerformance();
+            CalculateEngineProperties();
+        }
+
+        void UpdateIgnitionProperties(int ignitionCount)
+        {
+            if (this.ignitionCount == ignitionCount)
+                return;
+
+            this.ignitionCount = ignitionCount;
+            CalculateEngineProperties();
+        }
+
+        void UpdateNozzleExtension(double nozzleExtensionArea)
+        {
+            if (this.nozzleExtensionArea == nozzleExtensionArea)
+                return;
+
+            this.nozzleExtensionArea = nozzleExtensionArea;
             CalculateEngineProperties();
         }
         #endregion
@@ -176,10 +203,10 @@ namespace ProcEngines.EngineConfig
 
         protected void CalculateEngineAndNozzlePerformanceProperties()
         {
-            double effectiveFrozenAreaRatio = NozzleAeroUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
+            effectiveFrozenAreaRatio = NozzleUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
             double effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
 
-            double exitMach = NozzleAeroUtils.MachFromAreaRatio(effectiveExitAreaRatio, enginePrefab.nozzleGamma);
+            double exitMach = NozzleUtils.MachFromAreaRatio(effectiveExitAreaRatio, enginePrefab.nozzleGamma);
 
             double isentropicRatio = 0.5 * (enginePrefab.nozzleGamma - 1.0);
             isentropicRatio = (1.0 + isentropicRatio * enginePrefab.nozzleMach * enginePrefab.nozzleMach) / (1.0 + isentropicRatio * exitMach * exitMach);
@@ -256,30 +283,68 @@ namespace ProcEngines.EngineConfig
 
         #region GUI
         static bool showThrottleInjector = false;
-        static bool showChamNozzleDesign = false;
+        static bool showNozzleShape = false;
+        static bool showGimbalDesign = false;
+        static bool showIgnitionSystem = false;
 
         public void CycleEngineGUI()
         {
             GUILayout.BeginHorizontal();
-            GUILayout.BeginVertical(GUILayout.Width(299));
+            GUILayout.BeginVertical(GUILayout.Width(290));
 
-            if (GUILayout.Button("Chamber And Nozzle Design"))
-                showChamNozzleDesign = !showChamNozzleDesign;
-            if (showChamNozzleDesign)
+            if (GUILayout.Button("Nozzle Shape"))
+                showNozzleShape = !showNozzleShape;
+            if (showNozzleShape)
             {
-                GUILayout.Label("Would you really call him 'sentient'? NOOOO");
+                GUILayout.Label("Toggle Conical / Bell Nozzles");
+                GUILayout.Label("Select regen nozzle material");
+                GUILayout.Label("Select nozzle exit angle");
+
             }
 
+            if (GUILayout.Button("Nozzle and Chamber Cooling"))
+                showNozzleShape = !showNozzleShape;
+            if (showNozzleShape)
+            {
+                GUILayout.Label("Select regen chamber material");
+                GUILayout.Label("Select regen nozzle material");
+
+                GUILayout.Label("Toggle chamber film cooling");
+
+                double tmpNozzleExtensionArea = nozzleExtensionArea;
+                tmpNozzleExtensionArea = GUIUtils.TextEntryForDoubleWithButtons("Regen Cooling Area End:", 125, tmpNozzleExtensionArea, 0.1, 1, 50);
+
+                if (nozzleExtensionArea != areaRatio)
+                {
+                    GUILayout.Label("Select ablative or radiative extension");
+                    GUILayout.Label("Select extension material");
+                }
+
+                UpdateNozzleExtension(tmpNozzleExtensionArea);
+            } 
+            
+            if (GUILayout.Button("Ignition System"))
+                showIgnitionSystem = !showIgnitionSystem;
+            if (showIgnitionSystem)
+            {
+                GUILayout.Label("Select ignition system");
+
+                int tmpIgnitionCount = ignitionCount;
+                tmpIgnitionCount = GUIUtils.TextEntryForIntWithButtons("Num Ignitions:", 125, tmpIgnitionCount, 50);
+
+                UpdateIgnitionProperties(tmpIgnitionCount);
+            } 
+            
             LeftSideEngineGUI();
             GUILayout.EndVertical();
 
-            GUILayout.BeginVertical(GUILayout.Width(299));
+            GUILayout.BeginVertical(GUILayout.Width(290));
             if (GUILayout.Button("Throttling and Injector"))
                 showThrottleInjector = !showThrottleInjector;
             if (showThrottleInjector)
             {
                 double minThrottleTmp = minThrottle;
-                minThrottleTmp = GUIUtils.TextEntryForDoubleWithButtons("Min Throttle:", 90, minThrottleTmp, 0.01, 0.1, 75);
+                minThrottleTmp = GUIUtils.TextEntryForDoubleWithButtons("Min Throttle:", 125, minThrottleTmp, 0.01, 0.1, 50);
                 //Min Vac Thrust
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Min Vac Thrust: ", GUILayout.Width(125));
@@ -288,13 +353,22 @@ namespace ProcEngines.EngineConfig
 
                 //Injector Pres. Loss
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Injector % Pres Loss: ", GUILayout.Width(90));
+                GUILayout.Label("Injector % Pres Drop: ", GUILayout.Width(125));
                 GUILayout.Label((injectorPressureRatioDrop * 100.0).ToString("F1") + " %");
                 GUILayout.EndHorizontal();
 
                 UpdateThrottleInjectorProperties(minThrottleTmp, 1.0);
             }
 
+            if (GUILayout.Button("Gimbal and Thrust Vectoring"))
+                showGimbalDesign = !showGimbalDesign;
+            if (showGimbalDesign)
+            {
+                GUILayout.Label("Select gimbal method");
+                GUILayout.Label("Select gimbal range");
+
+            } 
+            
             RightSideEngineGUI();
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
