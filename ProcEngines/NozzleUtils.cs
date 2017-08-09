@@ -61,31 +61,36 @@ namespace ProcEngines
             double relLengthIndexFactor = 0;
             int relLengthIndex = 0;
 
+            double relLength1 = Instance.bellNozzleRelLengths[0];
             for (int i = 1; i < Instance.bellNozzleRelLengths.Length; ++i)
             {
                 double relLength2 = Instance.bellNozzleRelLengths[i];
                 if (relLength2 < nozzleRelLength)
+                {
+                    relLength1 = relLength2;
                     continue;
-
-                double relLength1 = Instance.bellNozzleRelLengths[i - 1];
+                }
 
                 relLengthIndexFactor = nozzleRelLength - relLength1;
                 relLengthIndexFactor /= (relLength2 - relLength1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
 
-                relLengthIndex = (int)relLengthIndexFactor;
+                relLengthIndex = i;
 
-                for(int j = 1; j < Instance.bellNozzleInflectionAngles.GetLength(0); ++j)
+                double areaRatio1 = Instance.bellNozzleInflectionAngles[0, 0];
+                for (int j = 1; j < Instance.bellNozzleInflectionAngles.GetLength(0); ++j)
                 {
-                    double areaRatio1 = Instance.bellNozzleInflectionAngles[j, 0];
-                    if (areaRatio1 < areaRatio)
-                        continue;
+                    double areaRatio2 = Instance.bellNozzleInflectionAngles[j, 0];
 
-                    double areaRatio2 = Instance.bellNozzleInflectionAngles[j - 1, 0];
+                    if (areaRatio2 < areaRatio)
+                    {
+                        areaRatio1 = areaRatio2;
+                        continue;
+                    }
 
                     double areaRatioIndexFactor = areaRatio - areaRatio1;
                     areaRatioIndexFactor /= (areaRatio2 - areaRatio1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
 
-                    int areaRatioIndex = (int)areaRatioIndexFactor;
+                    int areaRatioIndex = j;
 
                     Vector2d exitInflectionAngle = new Vector2d();
 
@@ -200,6 +205,7 @@ namespace ProcEngines
             for (int i = 0; i < inflectionAngleStrings.Length; ++i)
             {
                 string[] inflectionAngleSplitString = inflectionAngleStrings[i].Split(new char[] { ',', ' ', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+
                 for (int j = 0; j < inflectionAngleSplitString.Length; ++j)
                 {
                     double val = double.Parse(inflectionAngleSplitString[j]);

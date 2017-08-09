@@ -175,14 +175,14 @@ namespace ProcEngines.PropellantConfig
             }
             else
             {
-                EngineDataPrefab prefab2 = mixtureData[0].CalcData(combustorPressure);
+                EngineDataPrefab prefab1 = mixtureData[0].CalcData(combustorPressure);
                 for (int i = 1; i < mixtureData.Length; ++i)
                 {
-                    EngineDataPrefab prefab1 = mixtureData[i].CalcData(combustorPressure);
+                    EngineDataPrefab prefab2 = mixtureData[i].CalcData(combustorPressure);
 
-                    if (prefab1.chamberTempK < turbineInletTemp)
+                    if (prefab2.chamberTempK < turbineInletTemp)
                     {
-                        prefab2 = prefab1;
+                        prefab1 = prefab2;
                         continue;
                     }
                     double indexFactor = turbineInletTemp - prefab1.chamberTempK;

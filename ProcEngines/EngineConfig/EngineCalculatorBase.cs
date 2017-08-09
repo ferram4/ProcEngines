@@ -44,6 +44,7 @@ namespace ProcEngines.EngineConfig
         double throatArea;
         double nozzleArea;
         public double nozzleDiameter;
+        NozzleCalculator nozzle;
 
         double effectiveFrozenAreaRatio;
         double exhaustVelocityOpt;
@@ -79,11 +80,13 @@ namespace ProcEngines.EngineConfig
         public double specImpulseSL;
         public double overallOFRatio;
 
+        public double nozzleDivEfficiency = 1.0;
         public double overallEfficiency = 1.0;
 
         #region Constructor
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
+            nozzle = new NozzleCalculator(0.8, areaRatio, NozzleShapeType.BELL);
             SetEngineProperties(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter);
             nozzleExtensionArea = areaRatio;
         }
@@ -155,12 +158,15 @@ namespace ProcEngines.EngineConfig
             CalculateEngineProperties();
         }
 
-        void UpdateNozzleExtension(double nozzleExtensionArea)
+        void UpdateNozzleExtension(double relLength, int shapeIndex)
         {
-            if (this.nozzleExtensionArea == nozzleExtensionArea)
-                return;
+            NozzleShapeType shape;
+            if (shapeIndex == 0)
+                shape = NozzleShapeType.CONICAL;
+            else
+                shape = NozzleShapeType.BELL;
 
-            this.nozzleExtensionArea = nozzleExtensionArea;
+            nozzle.UpdateNozzleStatus(relLength, areaRatio, shape);
             CalculateEngineProperties();
         }
         #endregion
@@ -218,6 +224,11 @@ namespace ProcEngines.EngineConfig
             exhaustVelocityOpt = exitSonicVelocity * exitMach;
 
             exitPressureMPa = Math.Pow(isentropicRatio, enginePrefab.nozzleGamma / (enginePrefab.nozzleGamma - 1.0)) * enginePrefab.nozzlePresMPa;
+
+            nozzle.UpdateNozzleStatus(areaRatio);
+
+            nozzleDivEfficiency = nozzle.GetDivergenceLoss();
+            overallEfficiency = nozzleDivEfficiency;
 
             thrustVac = (exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0) * overallEfficiency;
             thrustSL = (exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0) * overallEfficiency;
@@ -284,6 +295,7 @@ namespace ProcEngines.EngineConfig
         #region GUI
         static bool showThrottleInjector = false;
         static bool showNozzleShape = false;
+        static bool showCooling = false;
         static bool showGimbalDesign = false;
         static bool showIgnitionSystem = false;
 
@@ -296,15 +308,30 @@ namespace ProcEngines.EngineConfig
                 showNozzleShape = !showNozzleShape;
             if (showNozzleShape)
             {
-                GUILayout.Label("Toggle Conical / Bell Nozzles");
+                int shapeIndex = nozzle.NozzleTypeSelect();
                 GUILayout.Label("Select regen nozzle material");
-                GUILayout.Label("Select nozzle exit angle");
 
+                double tmpRelLength = nozzle.relLength;
+                tmpRelLength = GUIUtils.TextEntryForDoubleWithButtons("Frac 15 Cone Length:", 125, tmpRelLength, 0.01, 0.1, 50);
+
+                //Nozzle Divergence Losses
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Exit Angle: ", GUILayout.Width(125));
+                GUILayout.Label(nozzle.exitAngleString);
+                GUILayout.EndHorizontal();
+
+                //Nozzle Divergence Losses
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Divergence Eff: ", GUILayout.Width(125));
+                GUILayout.Label((nozzleDivEfficiency * 100.0).ToString("F3") + " %");
+                GUILayout.EndHorizontal();
+
+                UpdateNozzleExtension(tmpRelLength, shapeIndex);
             }
 
             if (GUILayout.Button("Nozzle and Chamber Cooling"))
-                showNozzleShape = !showNozzleShape;
-            if (showNozzleShape)
+                showCooling = !showCooling;
+            if (showCooling)
             {
                 GUILayout.Label("Select regen chamber material");
                 GUILayout.Label("Select regen nozzle material");
@@ -319,8 +346,6 @@ namespace ProcEngines.EngineConfig
                     GUILayout.Label("Select ablative or radiative extension");
                     GUILayout.Label("Select extension material");
                 }
-
-                UpdateNozzleExtension(tmpNozzleExtensionArea);
             } 
             
             if (GUILayout.Button("Ignition System"))
