@@ -41,9 +41,7 @@ namespace ProcEngines.EngineConfig
 
         public NozzleCalculator(double relLength, double areaRatio, NozzleShapeType shape)
         {
-            this.relLength = relLength;
-            this.areaRatio = areaRatio;
-            shapeType = shape;
+            UpdateNozzleStatus(relLength, areaRatio, shape);
         }
 
         public void UpdateNozzleStatus(double relLength, double areaRatio, NozzleShapeType shape)
@@ -127,8 +125,6 @@ namespace ProcEngines.EngineConfig
                 Q = 0.5 * (N + E);
                 return;
             }
-
-
             double slope1, slope2;
 
             slope1 = Math.Tan(inflectionAngle);
@@ -140,7 +136,7 @@ namespace ProcEngines.EngineConfig
             intercept2 = E.y - slope2 * E.x;
 
             Q.x = (intercept2 - intercept1) / (slope1 - slope2);
-            Q.y = (intercept2 * slope1 - intercept1 * slope2) / (slope1 - slope2);
+            Q.y = (intercept2 * slope1 - intercept1 * slope1) / (slope1 - slope2) + intercept1;
         }
 
         void GenerateNozzleCurve()
@@ -180,7 +176,7 @@ namespace ProcEngines.EngineConfig
                     }
                     for (int i = 15; i < nozzlePoints.Length; ++i)
                     {
-                        double t = (2.0 * (double)i) / (nozzlePoints.Length - 15.0) - 1.0;
+                        double t = ((double)(i - 15)) / (nozzlePoints.Length - 15.0);
                         nozzlePoints[i] = NozzleCurveXYPoints(t);
                     }
                     break;
@@ -190,6 +186,24 @@ namespace ProcEngines.EngineConfig
         void DebugPrintNozzlePoints()
         {
             System.Text.StringBuilder builder = new System.Text.StringBuilder();
+
+            builder.AppendLine(exitAngle.ToString("F3"));
+            builder.AppendLine(inflectionAngle.ToString("F3"));
+            builder.AppendLine();
+
+            builder.Append(N.x.ToString("F3"));
+            builder.Append(",");
+            builder.AppendLine(N.y.ToString("F3"));
+
+            builder.Append(Q.x.ToString("F3"));
+            builder.Append(",");
+            builder.AppendLine(Q.y.ToString("F3"));
+            
+            builder.Append(E.x.ToString("F3"));
+            builder.Append(",");
+            builder.AppendLine(E.y.ToString("F3"));
+
+            builder.AppendLine();
 
             for(int i = 0; i < nozzlePoints.Length; ++i)
             {
@@ -204,7 +218,9 @@ namespace ProcEngines.EngineConfig
         //takes t = 0 at inflection point to t = 1 to exit point
         Vector2d NozzleCurveXYPoints(double t)
         {
-            return (1 - t) * (1 - t) * N + 2 * (1 - t) * t * Q + t * t * E;
+            return (1 - t) * (1 - t) * N
+                + 2 * (1 - t) * t * Q
+                + t * t * E;
         }
 
         Vector2d NozzleThroatXYPoints(double t)

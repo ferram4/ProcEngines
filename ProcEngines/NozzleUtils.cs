@@ -199,7 +199,7 @@ namespace ProcEngines
 
             ConfigNode inflectionAngleDegree = bellNozzleParams.GetNode("InflectionAngleDegree");
 
-            string[] inflectionAngleStrings = exitAngleDegree.GetValues("key");
+            string[] inflectionAngleStrings = inflectionAngleDegree.GetValues("key");
             bellNozzleInflectionAngles = new double[inflectionAngleStrings.Length, bellNozzleRelLengths.Length + 1];
 
             for (int i = 0; i < inflectionAngleStrings.Length; ++i)
