@@ -82,7 +82,6 @@ namespace ProcEngines.EngineConfig
 
         public double nozzleDivEfficiency = 1.0;
         public double nozzleFrictionEfficiency = 1.0;
-        public double overallEfficiency = 1.0;
 
         #region Constructor
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
@@ -230,10 +229,9 @@ namespace ProcEngines.EngineConfig
 
             nozzleDivEfficiency = nozzle.GetDivergenceEff();
             nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.nozzleGamma, throatDiameter * 0.5);
-            overallEfficiency = nozzleDivEfficiency * nozzleFrictionEfficiency;
 
-            thrustVac = (exhaustVelocityOpt * massFlowChamber * overallEfficiency + exitPressureMPa * nozzleArea * 1000.0);
-            thrustSL = (exhaustVelocityOpt * massFlowChamber * overallEfficiency + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0);
+            thrustVac = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + exitPressureMPa * nozzleDivEfficiency * nozzleArea * 1000.0);
+            thrustSL = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + (exitPressureMPa * nozzleDivEfficiency - 0.1013) * nozzleArea * 1000.0);
             minThrustVac = thrustVac * minThrottle;
 
             specImpulseVac = thrustVac / (massFlowTotal * G0);

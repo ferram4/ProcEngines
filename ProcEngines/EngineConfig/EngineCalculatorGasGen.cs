@@ -110,13 +110,20 @@ namespace ProcEngines.EngineConfig
 
             gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(gasGenPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
 
+            double gammaPower = -(gasGenPrefab.nozzleGamma - 1.0) / gasGenPrefab.nozzleGamma;
+            double outputTempMin = 400;
+
+            turbinePresRatio = Math.Min(turbinePresRatio, Math.Pow(turbineInletTempK / outputTempMin, -1/gammaPower));    //add stop for ensuring that not too much power is extracted
+
+            turbinePresRatio = Math.Min(turbinePresRatio, 20);      //add upper limit for pres ratio
+
             /*double gasGenOFRatio = gasGenPrefab.OFRatio;
             double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
             double Cp = gasGenPrefab.CalculateCp();*/
 
             double[] gasGenOFRatio_gammaPower_Cp_Dens = new double[] { gasGenPrefab.OFRatio,
-                (gasGenPrefab.nozzleGamma - 1.0) / gasGenPrefab.nozzleGamma,
-                gasGenPrefab.CalculateCp(),
+                gammaPower,
+                gasGenPrefab.chamberCp,
                 biPropConfig.GetOxDensity(),
                 biPropConfig.GetFuelDensity()};
 
@@ -147,7 +154,7 @@ namespace ProcEngines.EngineConfig
 
             turbinePower = (oxPumpPowerW + fuelPumpPowerW) / (turbineEfficiency);
 
-            double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, -gasGenOFRatio_gammaPower_Cp_Dens[1]));
+            double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gasGenOFRatio_gammaPower_Cp_Dens[1]));
             checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp_Dens[2] * turbineInletTempK;
             checkTurbineMassFlow = turbinePower / (1000.0 * checkTurbineMassFlow);   //convert to tonnes
 

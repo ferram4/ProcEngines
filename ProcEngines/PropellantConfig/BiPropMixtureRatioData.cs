@@ -27,6 +27,8 @@ namespace ProcEngines.PropellantConfig
 {
     public class BiPropMixtureRatioData
     {
+        const double GAS_CONSTANT = 8314.459848;
+
         string mixtureName;
         double oFRatio;
         public double OFRatio
@@ -53,6 +55,8 @@ namespace ProcEngines.PropellantConfig
         double[] nozzleMolWeightgMolData;
         double[] nozzleGammaData;
         double[] nozzleMachData;
+        double[] chamberCpData;
+        double[] nozzleCpData;
         double frozenAreaRatio;
 
         public BiPropMixtureRatioData(ConfigNode mixtureRatioNode, string mixtureName, double frozenAreaRatio)
@@ -66,19 +70,37 @@ namespace ProcEngines.PropellantConfig
 
             this.chamberPresMPaData = new double[pressureNodeKeys.Length];
             this.chamberTempKData = new double[pressureNodeKeys.Length];
+
             this.nozzlePresMPaData = new double[pressureNodeKeys.Length];
             this.nozzleTempKData = new double[pressureNodeKeys.Length];
             this.nozzleMolWeightgMolData = new double[pressureNodeKeys.Length];
             this.nozzleGammaData = new double[pressureNodeKeys.Length];
             this.nozzleMachData = new double[pressureNodeKeys.Length];
+
+            this.chamberCpData = new double[pressureNodeKeys.Length];
+            this.nozzleCpData = new double[pressureNodeKeys.Length];
+
             this.frozenAreaRatio = frozenAreaRatio;
 
             for (int i = 0; i < pressureNodeKeys.Length; ++i)
             {
                 string[] splitSection = pressureNodeKeys[i].Split(new char[] { ',', ' ', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
-                if (splitSection.Length != 7)
+                bool hasCpData = false;
+
+                if (splitSection.Length == 7)
+                {
+                    hasCpData = false;
+                    Debug.Log("[ProcEngines] Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " has no Cp data; generating entries using ideal gas assumptions");
+                }
+                else if (splitSection.Length == 9)
+                {
+                    hasCpData = true;
+                }
+                else
+                {
                     Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " is incomplete//has too many entries");
+                }
 
                 double tmpVal;
                 //Chamber Pressure
@@ -122,6 +144,25 @@ namespace ProcEngines.PropellantConfig
                     nozzleMachData[i] = tmpVal;
                 else
                     Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[6]);
+
+                if(hasCpData)
+                {
+                    //Chamber Cp
+                    if (double.TryParse(splitSection[7], out tmpVal))
+                        chamberCpData[i] = tmpVal;
+                    else
+                        Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[7]);
+                    //Nozzle Cp
+                    if (double.TryParse(splitSection[8], out tmpVal))
+                        nozzleCpData[i] = tmpVal;
+                    else
+                        Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[8]);
+                }
+                else
+                {
+                    double approxIdealCp = nozzleGammaData[i] / (nozzleGammaData[i] - 1.0) * GAS_CONSTANT / nozzleMolWeightgMolData[i];
+                    chamberCpData[i] = nozzleCpData[i] = approxIdealCp;
+                }
             }
 
             minChamPres = chamberPresMPaData[0];
@@ -139,6 +180,8 @@ namespace ProcEngines.PropellantConfig
             prefab.nozzleMWgMol = 0;
             prefab.nozzleGamma = 0;
             prefab.nozzleMach = 0;
+            prefab.chamberCp = 0;
+            prefab.nozzleCp = 0;
             prefab.frozenAreaRatio = frozenAreaRatio;
 
             if (inputChamberPres < minChamPres)
@@ -169,6 +212,8 @@ namespace ProcEngines.PropellantConfig
                 prefab.nozzleMWgMol = (nozzleMolWeightgMolData[i] - nozzleMolWeightgMolData[i - 1]) * indexFactor + nozzleMolWeightgMolData[i - 1];
                 prefab.nozzleGamma = (nozzleGammaData[i] - nozzleGammaData[i - 1]) * indexFactor + nozzleGammaData[i - 1];
                 prefab.nozzleMach = (nozzleMachData[i] - nozzleMachData[i - 1]) * indexFactor + nozzleMachData[i - 1];
+                prefab.chamberCp = (chamberCpData[i] - chamberCpData[i - 1]) * indexFactor + chamberCpData[i - 1];
+                prefab.nozzleCp = (nozzleCpData[i] - nozzleCpData[i - 1]) * indexFactor + nozzleCpData[i - 1];
 
                 break;
             }

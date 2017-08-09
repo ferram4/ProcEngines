@@ -252,7 +252,7 @@ namespace ProcEngines.EngineConfig
         {
             double delV = 0;
 
-            double gammaDrag = 1.05 * gamma;
+            double gammaDrag = 1 * gamma;
 
             double gammaFactor = gammaDrag - 1.0;
             gammaFactor *= 0.5;

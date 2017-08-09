@@ -74,7 +74,7 @@ namespace ProcEngines
                 relLengthIndexFactor = nozzleRelLength - relLength1;
                 relLengthIndexFactor /= (relLength2 - relLength1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
 
-                relLengthIndex = i;
+                relLengthIndex = i;     //remember, off-by-one offset for 2D arrays
 
                 double areaRatio1 = Instance.bellNozzleInflectionAngles[0, 0];
                 for (int j = 1; j < Instance.bellNozzleInflectionAngles.GetLength(0); ++j)
@@ -90,7 +90,7 @@ namespace ProcEngines
                     double areaRatioIndexFactor = areaRatio - areaRatio1;
                     areaRatioIndexFactor /= (areaRatio2 - areaRatio1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
 
-                    int areaRatioIndex = j;
+                    int areaRatioIndex = j - 1;
 
                     Vector2d exitInflectionAngle = new Vector2d();
 
@@ -129,7 +129,7 @@ namespace ProcEngines
             }
             Debug.LogError("[ProcEngines] Error in data tables, could not solve for nozzle angles");
 
-            return new Vector2d(0, 0.5 * Math.PI);
+            return new Vector2d(0, 0.48 * Math.PI);
         }
 
         public static double GetConicalExitAngle(double nozzleRelLength)
