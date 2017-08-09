@@ -91,7 +91,7 @@ namespace ProcEngines.PropellantConfig
                 if (splitSection.Length == 7)
                 {
                     hasCpData = false;
-                    Debug.Log("[ProcEngines] Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " has no Cp data; generating entries using ideal gas assumptions");
+                    Debug.Log("[ProcEngines] Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " has no Cp data; generating entries using ideal gas assumptions");
                 }
                 else if (splitSection.Length == 9)
                 {
@@ -99,7 +99,7 @@ namespace ProcEngines.PropellantConfig
                 }
                 else
                 {
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " is incomplete//has too many entries");
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " is incomplete//has too many entries");
                 }
 
                 double tmpVal;
@@ -107,56 +107,56 @@ namespace ProcEngines.PropellantConfig
                 if (double.TryParse(splitSection[0], out tmpVal))
                     chamberPresMPaData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " chamber pres could not be parsed as double; string is " + splitSection[0]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " chamber pres could not be parsed as double; string is " + splitSection[0]);
 
                 //Chamber Temperature
                 if (double.TryParse(splitSection[1], out tmpVal))
                     chamberTempKData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " chamber temp could not be parsed as double; string is " + splitSection[1]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " chamber temp could not be parsed as double; string is " + splitSection[1]);
 
                 //Nozzle Temperature
                 if (double.TryParse(splitSection[2], out tmpVal))
                     nozzleTempKData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle temp could not be parsed as double; string is " + splitSection[2]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " nozzle temp could not be parsed as double; string is " + splitSection[2]);
 
                 //Nozzle Pressure
                 if (double.TryParse(splitSection[3], out tmpVal))
                     nozzlePresMPaData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle pres could not be parsed as double; string is " + splitSection[3]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " nozzle pres could not be parsed as double; string is " + splitSection[3]);
 
                 //Nozzle MW
                 if (double.TryParse(splitSection[4], out tmpVal))
                     nozzleMolWeightgMolData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle MW could not be parsed as double; string is " + splitSection[4]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " nozzle MW could not be parsed as double; string is " + splitSection[4]);
 
                 //Nozzle Gamma
                 if (double.TryParse(splitSection[5], out tmpVal))
                     nozzleGammaData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle gamma could not be parsed as double; string is " + splitSection[5]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " nozzle gamma could not be parsed as double; string is " + splitSection[5]);
 
                 //Nozzle Mach
                 if (double.TryParse(splitSection[6], out tmpVal))
                     nozzleMachData[i] = tmpVal;
                 else
-                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[6]);
+                    Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[6]);
 
                 if(hasCpData)
                 {
                     //Chamber Cp
                     if (double.TryParse(splitSection[7], out tmpVal))
-                        chamberCpData[i] = tmpVal;
+                        chamberCpData[i] = tmpVal * 1000.0;
                     else
-                        Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[7]);
+                        Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " chamber Cp could not be parsed as double; string is " + splitSection[7]);
                     //Nozzle Cp
                     if (double.TryParse(splitSection[8], out tmpVal))
-                        nozzleCpData[i] = tmpVal;
+                        nozzleCpData[i] = tmpVal * 1000.0;
                     else
-                        Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O//F " + oFRatio + " nozzle Mach could not be parsed as double; string is " + splitSection[8]);
+                        Debug.LogError("[ProcEngines] Error: Row " + i + " for " + mixtureName + " at O/F " + oFRatio + " nozzle Cp could not be parsed as double; string is " + splitSection[8]);
                 }
                 else
                 {
