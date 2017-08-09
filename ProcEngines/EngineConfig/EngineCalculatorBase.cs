@@ -81,6 +81,7 @@ namespace ProcEngines.EngineConfig
         public double overallOFRatio;
 
         public double nozzleDivEfficiency = 1.0;
+        public double nozzleFrictionEfficiency = 1.0;
         public double overallEfficiency = 1.0;
 
         #region Constructor
@@ -227,11 +228,12 @@ namespace ProcEngines.EngineConfig
 
             nozzle.UpdateNozzleStatus(areaRatio);
 
-            nozzleDivEfficiency = nozzle.GetDivergenceLoss();
-            overallEfficiency = nozzleDivEfficiency;
+            nozzleDivEfficiency = nozzle.GetDivergenceEff();
+            nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.nozzleGamma, throatDiameter * 0.5);
+            overallEfficiency = nozzleDivEfficiency * nozzleFrictionEfficiency;
 
-            thrustVac = (exhaustVelocityOpt * massFlowChamber + exitPressureMPa * nozzleArea * 1000.0) * overallEfficiency;
-            thrustSL = (exhaustVelocityOpt * massFlowChamber + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0) * overallEfficiency;
+            thrustVac = (exhaustVelocityOpt * massFlowChamber * overallEfficiency + exitPressureMPa * nozzleArea * 1000.0);
+            thrustSL = (exhaustVelocityOpt * massFlowChamber * overallEfficiency + (exitPressureMPa - 0.1013) * nozzleArea * 1000.0);
             minThrustVac = thrustVac * minThrottle;
 
             specImpulseVac = thrustVac / (massFlowTotal * G0);
@@ -324,6 +326,12 @@ namespace ProcEngines.EngineConfig
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Divergence Eff: ", GUILayout.Width(125));
                 GUILayout.Label((nozzleDivEfficiency * 100.0).ToString("F3") + " %");
+                GUILayout.EndHorizontal();
+
+                //Nozzle Friction Losses
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Friction Eff: ", GUILayout.Width(125));
+                GUILayout.Label((nozzleFrictionEfficiency * 100.0).ToString("F3") + " %");
                 GUILayout.EndHorizontal();
 
                 UpdateNozzleExtension(tmpRelLength, shapeIndex);

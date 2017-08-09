@@ -164,7 +164,12 @@ namespace ProcEngines
         public static double MachFromAreaRatio(double desiredAreaRatio, double gamma, double epsilon = 0.0001, int maxIter = int.MaxValue)
         {
             double[] args = new double[] { gamma, desiredAreaRatio };
-            return MathUtils.BrentsMethod(AreaRatioFromMachDiff, args, 1.1, 500.0, epsilon, maxIter);
+            return MathUtils.BrentsMethod(AreaRatioFromMachDiff, args, 1.000000000000000, 500.0, epsilon, maxIter);
+        }
+        public static double MachFromAreaRatioSubsonic(double desiredAreaRatio, double gamma, double epsilon = 0.0001, int maxIter = int.MaxValue)
+        {
+            double[] args = new double[] { gamma, desiredAreaRatio };
+            return MathUtils.BrentsMethod(AreaRatioFromMachDiff, args, 0.001, 1.0, epsilon, maxIter);
         }
 
         void LoadBellNozzleData()

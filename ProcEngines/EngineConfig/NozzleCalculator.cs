@@ -27,6 +27,11 @@ namespace ProcEngines.EngineConfig
 {
     class NozzleCalculator
     {
+        const double INCOMPRESSIBLE_CF = 0.003;
+        const double G0 = 9.80665;
+        const int POINTS_CONVERGING_ARC = 30;
+        const int POINTS_DIVERGING_ARC = 40;
+
         public NozzleShapeType shapeType;
         public double exitAngle;
         public string exitAngleString;
@@ -65,7 +70,7 @@ namespace ProcEngines.EngineConfig
             if (!unchanged)
             {
                 CalculateNozzleProperties();
-                DebugPrintNozzlePoints();
+                //DebugPrintNozzlePoints();
             }
         }
 
@@ -80,7 +85,7 @@ namespace ProcEngines.EngineConfig
             if (!unchanged)
             {
                 CalculateNozzleProperties();
-                DebugPrintNozzlePoints();
+                //DebugPrintNozzlePoints();
             }
         }
         
@@ -141,46 +146,29 @@ namespace ProcEngines.EngineConfig
 
         void GenerateNozzleCurve()
         {
-            switch (shapeType)
-            {
-                case NozzleShapeType.CONICAL:
-                    nozzlePoints = new Vector2d[17];
-                    break;
-                    
-                case NozzleShapeType.BELL:
-                    double distanceParaCurve = E.x - N.x;
-                    double distanceCircularCurves = NozzleThroatXYPoints(1).x - NozzleThroatXYPoints(-1).x;
+            double distanceParaCurve = E.x - N.x;
+            double distanceCircularCurves = NozzleThroatXYPoints(1).x - NozzleThroatXYPoints(-1).x;
 
-                    int countParaCurve = (int)(15.0 * distanceParaCurve / distanceCircularCurves) + 1;
-                    nozzlePoints = new Vector2d[15 + countParaCurve];
-                    break;
+            int countParaCurve = (int)((POINTS_DIVERGING_ARC + POINTS_CONVERGING_ARC) * distanceParaCurve / distanceCircularCurves) + 1;
+            nozzlePoints = new Vector2d[(POINTS_DIVERGING_ARC + POINTS_CONVERGING_ARC) + countParaCurve];
+
+
+            for (int i = 0; i < POINTS_CONVERGING_ARC; ++i)
+            {
+                double t = ((double)i) / (POINTS_CONVERGING_ARC) - 1.0;
+                nozzlePoints[i] = NozzleThroatXYPoints(t);
+            }
+            for (int i = POINTS_CONVERGING_ARC; i < POINTS_CONVERGING_ARC + POINTS_DIVERGING_ARC; ++i)
+            {
+                double t = ((double)i - POINTS_CONVERGING_ARC) / (POINTS_DIVERGING_ARC);
+                nozzlePoints[i] = NozzleThroatXYPoints(t);
+            }
+            for (int i = POINTS_CONVERGING_ARC + POINTS_DIVERGING_ARC; i < nozzlePoints.Length; ++i)
+            {
+                double t = ((double)(i - POINTS_CONVERGING_ARC + POINTS_DIVERGING_ARC)) / (nozzlePoints.Length - POINTS_CONVERGING_ARC + POINTS_DIVERGING_ARC - 1.0);
+                nozzlePoints[i] = NozzleCurveXYPoints(t);
             }
 
-            switch(shapeType)
-            {
-                case NozzleShapeType.CONICAL:
-                    for (int i = 0; i < nozzlePoints.Length - 2; ++i)
-                    {
-                        double t = (2.0 * (double)i) / (nozzlePoints.Length - 2) - 1.0;
-                        nozzlePoints[i] = NozzleThroatXYPoints(t);
-                    }
-                    nozzlePoints[15] = NozzleCurveXYPoints(0);
-                    nozzlePoints[16] = NozzleCurveXYPoints(1);
-                    break;
-
-                case NozzleShapeType.BELL:
-                    for (int i = 0; i < 15; ++i)
-                    {
-                        double t = (2.0 * (double)i) / (15.0) - 1.0;
-                        nozzlePoints[i] = NozzleThroatXYPoints(t);
-                    }
-                    for (int i = 15; i < nozzlePoints.Length; ++i)
-                    {
-                        double t = ((double)(i - 15)) / (nozzlePoints.Length - 15.0);
-                        nozzlePoints[i] = NozzleCurveXYPoints(t);
-                    }
-                    break;
-            }
         }
 
         void DebugPrintNozzlePoints()
@@ -250,7 +238,88 @@ namespace ProcEngines.EngineConfig
             }
         }
 
-        public double GetDivergenceLoss()
+        public double GetFrictionEff(double exhaustVelOpt, double massFlow, double chamberPresMPa, double gamma, double throatRadius)
+        {
+            double delV = CalcExhaustVelChangeFromFriction(massFlow, chamberPresMPa, gamma, throatRadius);
+
+            double eff = exhaustVelOpt - delV;
+            eff /= exhaustVelOpt;
+
+            return eff;
+        }
+
+        public double CalcExhaustVelChangeFromFriction(double massFlow, double chamberPresMPa, double gamma, double throatRadius)
+        {
+            double delV = 0;
+
+            double gammaDrag = 1.05 * gamma;
+
+            double gammaFactor = gammaDrag - 1.0;
+            gammaFactor *= 0.5;
+
+            double gammaExp = -gammaDrag / (gammaDrag - 1.0);
+
+            Vector2d point1 = nozzlePoints[POINTS_CONVERGING_ARC];
+            double areaRat1 = point1.y * point1.y;
+            double mach1 = 1.0;// NozzleUtils.MachFromAreaRatioSubsonic(areaRat1, gamma);    //should be Mach 1 here
+            double drag1 = mach1 * mach1 * gammaFactor + 1.0;
+            drag1 = Math.Pow(drag1, gammaExp);
+            drag1 *= mach1 * mach1 * CalcCompressFriction(mach1, gammaDrag);
+            drag1 *= point1.y;
+
+            for (int i = POINTS_CONVERGING_ARC + 1; i < nozzlePoints.Length; ++i)
+            {
+                Vector2d point2 = nozzlePoints[i];
+                double areaRat2 = point2.y * point2.y;
+                double mach2;
+
+                if (i > POINTS_CONVERGING_ARC)
+                    mach2 = NozzleUtils.MachFromAreaRatio(areaRat2, gamma);
+                else if (i < POINTS_CONVERGING_ARC)
+                    mach2 = NozzleUtils.MachFromAreaRatioSubsonic(areaRat2, gamma);
+                else
+                    mach2 = 1.0;
+
+                double drag2 = mach2 * mach2 * gammaFactor + 1.0;
+                drag2 = Math.Pow(drag2, gammaExp);
+                drag2 *= mach2 * mach2 * CalcCompressFriction(mach2, gammaDrag);
+                drag2 *= point2.y;
+
+                double distanceX = point2.x - point1.x;
+                double distanceY = point2.y - point1.y;
+                double distance = Math.Sqrt(distanceX * distanceX + distanceY * distanceY);
+
+                delV += (drag2 + drag1) * 0.5 * distance;       //trapezoid method
+
+                point1 = point2;
+                drag1 = drag2;
+            }
+
+            delV *= chamberPresMPa;
+            delV *= gammaDrag;
+            delV /= massFlow;
+            delV *= 1000.0;
+
+            delV *= throatRadius * Math.PI;
+
+            return delV;
+        }
+
+        public double CalcCompressFriction(double mach, double gamma)
+        {
+            double result = gamma - 1.0;
+            result *= 0.5 * 0.72;
+            result *= mach * mach;
+            result++;
+
+            result = Math.Pow(result, -0.578);
+
+            result *= INCOMPRESSIBLE_CF;
+
+            return result;
+        }
+
+        public double GetDivergenceEff()
         {
             return (1 + Math.Cos(exitAngle)) * 0.5;
         }
