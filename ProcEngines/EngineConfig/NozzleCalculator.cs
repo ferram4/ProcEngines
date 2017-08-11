@@ -27,7 +27,8 @@ namespace ProcEngines.EngineConfig
 {
     class NozzleCalculator
     {
-        const double INCOMPRESSIBLE_CF = 0.003;
+        //const double INCOMPRESSIBLE_CF = 0.003;
+        const double GAS_CONSTANT = 8314.459848;
         const double G0 = 9.80665;
         const int POINTS_CONVERGING_ARC = 30;
         const int POINTS_DIVERGING_ARC = 40;
@@ -238,9 +239,9 @@ namespace ProcEngines.EngineConfig
             }
         }
 
-        public double GetFrictionEff(double exhaustVelOpt, double massFlow, double chamberPresMPa, double gamma, double throatRadius)
+        public double GetFrictionEff(double exhaustVelOpt, double massFlow, double chamberPresMPa, double chamberTempK, double molWeightGMol, double gamma, double throatRadius)
         {
-            double delV = CalcExhaustVelChangeFromFriction(massFlow, chamberPresMPa, gamma, throatRadius);
+            double delV = CalcExhaustVelChangeFromFriction(massFlow, chamberPresMPa, chamberTempK, molWeightGMol, gamma, throatRadius);
 
             double eff = exhaustVelOpt - delV;
             eff /= exhaustVelOpt;
@@ -248,7 +249,7 @@ namespace ProcEngines.EngineConfig
             return eff;
         }
 
-        public double CalcExhaustVelChangeFromFriction(double massFlow, double chamberPresMPa, double gamma, double throatRadius)
+        public double CalcExhaustVelChangeFromFriction(double massFlow, double chamberPresMPa, double chamberTempK, double molWeightGMol, double gamma, double throatRadius)
         {
             double delV = 0;
 
@@ -259,15 +260,23 @@ namespace ProcEngines.EngineConfig
 
             double gammaExp = -gammaDrag / (gammaDrag - 1.0);
 
-            Vector2d point1 = nozzlePoints[POINTS_CONVERGING_ARC];
+            double cumulativeDistance = throatRadius * 0.1;
+
+            Vector2d point1 = nozzlePoints[0];
             double areaRat1 = point1.y * point1.y;
             double mach1 = 1.0;// NozzleUtils.MachFromAreaRatioSubsonic(areaRat1, gamma);    //should be Mach 1 here
             double drag1 = mach1 * mach1 * gammaFactor + 1.0;
             drag1 = Math.Pow(drag1, gammaExp);
-            drag1 *= mach1 * mach1 * CalcCompressFriction(mach1, gammaDrag);
+
+            double temp1 = chamberTempK / CalcStagTempFactor(mach1, gamma);
+            double visc1 = CalcApproxDynVisc(molWeightGMol, temp1);
+            double reynoldsScalingFactor1 = ReynoldsCalcScalingFactor(chamberPresMPa, chamberTempK, molWeightGMol, gammaDrag);
+            double reynolds1 = CalcReynoldsNumber(mach1, gammaDrag, cumulativeDistance, visc1, reynoldsScalingFactor1);
+
+            drag1 *= mach1 * mach1 * CalcCompressFriction(reynolds1);
             drag1 *= point1.y;
 
-            for (int i = POINTS_CONVERGING_ARC + 1; i < nozzlePoints.Length; ++i)
+            for (int i = 1; i < nozzlePoints.Length; ++i)
             {
                 Vector2d point2 = nozzlePoints[i];
                 double areaRat2 = point2.y * point2.y;
@@ -280,14 +289,22 @@ namespace ProcEngines.EngineConfig
                 else
                     mach2 = 1.0;
 
-                double drag2 = mach2 * mach2 * gammaFactor + 1.0;
-                drag2 = Math.Pow(drag2, gammaExp);
-                drag2 *= mach2 * mach2 * CalcCompressFriction(mach2, gammaDrag);
-                drag2 *= point2.y;
-
                 double distanceX = point2.x - point1.x;
                 double distanceY = point2.y - point1.y;
                 double distance = Math.Sqrt(distanceX * distanceX + distanceY * distanceY);
+                cumulativeDistance += distance * throatRadius;
+
+                double drag2 = mach2 * mach2 * gammaFactor + 1.0;
+                drag2 = Math.Pow(drag2, gammaExp);
+
+                double temp2 = chamberTempK / CalcStagTempFactor(mach2, gamma);
+                double visc2 = CalcApproxDynVisc(molWeightGMol, temp2);
+                double reynoldsScalingFactor2 = ReynoldsCalcScalingFactor(chamberPresMPa, chamberTempK, molWeightGMol, gammaDrag);
+                double reynolds2 = CalcReynoldsNumber(mach2, gammaDrag, cumulativeDistance, visc2, reynoldsScalingFactor2);
+
+                drag2 *= mach2 * mach2 * CalcCompressFriction(reynolds1);
+                drag2 *= point2.y;
+
 
                 delV += (drag2 + drag1) * 0.5 * distance;       //trapezoid method
 
@@ -305,9 +322,40 @@ namespace ProcEngines.EngineConfig
             return delV;
         }
 
-        public double CalcCompressFriction(double mach, double gamma)
+        public double ReynoldsCalcScalingFactor(double chamPresMPa, double chamTempK, double molWeightGMol, double gamma)
         {
-            double result = gamma - 1.0;
+            double factor = GAS_CONSTANT * chamTempK;
+            factor = gamma * molWeightGMol / factor;
+            factor = Math.Sqrt(factor);
+            factor *= chamPresMPa * 1000000.0;
+
+            return factor;
+        }
+
+        public double CalcReynoldsNumber(double mach, double gamma, double dist, double visc, double scalingFactor)
+        {
+            double exp = gamma - 1;
+            exp *= 0.5;
+            double reynolds = exp;
+
+            exp /= gamma;
+
+            reynolds *= mach * mach;
+            reynolds++;
+            reynolds = Math.Pow(reynolds, exp);
+
+            reynolds *= mach * dist / visc;
+            reynolds *= scalingFactor;
+
+            return reynolds;
+        }
+
+        public double CalcCompressFriction(double reynolds)
+        {
+            double Cf = 0.0512;
+            Cf *= Math.Pow(reynolds, -0.2);
+            return Cf;
+            /*double result = gamma - 1.0;
             result *= 0.5 * 0.72;
             result *= mach * mach;
             result++;
@@ -316,9 +364,42 @@ namespace ProcEngines.EngineConfig
 
             result *= INCOMPRESSIBLE_CF;
 
+            return result;*/
+        }
+
+        public double CalcStagTempFactor(double mach, double gamma)
+        {
+            double result = gamma - 1.0;
+            result *= 0.5;
+            result *= mach * mach;
+
+            result++;
+
             return result;
         }
 
+        //Taken from pg 101, Design of Liquid Propellant Rocket Engines, 2e, Huzel and Huang
+        public double CalcApproxDynVisc(double molWeightGMol, double temp)
+        {
+            double result = Math.Pow(temp, 0.6);
+            result *= Math.Sqrt(molWeightGMol);
+            result *= 46.6e-10;         //lbm/(in*s) * (mol/lbm)^0.5 * (1/R)^0.6
+            result *= 0.0469533811349086978613919543019;       //convert (g/mol)^0.5 -> (lbm/mol)^0.5
+            result *= 1.4228643658675870484115395202968;        //convert K^0.6 -> R^0.6
+            result *= 17.8572;       //convert lbm/(in*s) -> kg/(m*s)
+
+            return result;
+        }
+
+        //Taken from pg 101, Design of Liquid Propellant Rocket Engines, 2e, Huzel and Huang
+        public double CalcApproxPrandtlNumber(double gamma)
+        {
+            double result = 9.0 * gamma - 5.0;
+            result = 4 * gamma / result;
+
+            return result;
+        }
+        
         public double GetDivergenceEff()
         {
             return (1 + Math.Cos(exitAngle)) * 0.5;

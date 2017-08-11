@@ -140,8 +140,8 @@ namespace ProcEngines.EngineConfig
 
         double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp_Dens)
         {
-            double pumpEfficiency = 0.8;                //TODO: make vary with fuel type and with tech level
-            double turbineEfficiency = 0.7;             //TODO: make vary with tech level
+            double pumpEfficiency = 0.75;                //TODO: make vary with fuel type and with tech level
+            double turbineEfficiency = 0.6;             //TODO: make vary with tech level
 
             double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp_Dens[0] + 1.0);
             double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp_Dens[0];

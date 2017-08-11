@@ -228,7 +228,7 @@ namespace ProcEngines.EngineConfig
             nozzle.UpdateNozzleStatus(areaRatio);
 
             nozzleDivEfficiency = nozzle.GetDivergenceEff();
-            nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.nozzleGamma, throatDiameter * 0.5);
+            nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.chamberTempK, enginePrefab.nozzleMWgMol, enginePrefab.nozzleGamma, throatDiameter * 0.5);
 
             thrustVac = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + exitPressureMPa * nozzleDivEfficiency * nozzleArea * 1000.0);
             thrustSL = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + (exitPressureMPa * nozzleDivEfficiency - 0.1013) * nozzleArea * 1000.0);
