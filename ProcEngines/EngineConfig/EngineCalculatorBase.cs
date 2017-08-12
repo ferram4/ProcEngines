@@ -82,6 +82,7 @@ namespace ProcEngines.EngineConfig
 
         public double nozzleDivEfficiency = 1.0;
         public double nozzleFrictionEfficiency = 1.0;
+        public double reactionEfficiency = 1.0;
 
         #region Constructor
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
@@ -200,6 +201,9 @@ namespace ProcEngines.EngineConfig
             massFlowChamber *= enginePrefab.chamberPresMPa * throatArea;
             massFlowChamber *= 1000.0;       //convert from 1000 t/s (due to MPa) to t/s
 
+            reactionEfficiency = CalculateChamberReactionEfficiency();      //reaction efficiency acts to increase mass flow
+            massFlowChamber /= reactionEfficiency;
+
             massFlowChamberFuel = massFlowChamber / (chamberOFRatio + 1.0);
             massFlowChamberOx = massFlowChamberFuel * chamberOFRatio;
 
@@ -207,28 +211,52 @@ namespace ProcEngines.EngineConfig
             overallOFRatio = chamberOFRatio;
         }
 
+        double CalculateChamberReactionEfficiency()
+        {
+            double thermalReactionLoss = 0.1013 / chamberPresMPa;
+            thermalReactionLoss = Math.Pow(thermalReactionLoss, 0.8);  //loss from pressure;
+            thermalReactionLoss *= Math.Log10(nozzleDiameter / throatDiameter);     //loss from expansion ratio
+            thermalReactionLoss *= Math.Pow(6.7e-4 / (0.5 * throatDiameter), 0.35); //loss from chamber size
+
+            double lowPresChamberLoss = Math.Log(chamberPresMPa * 0.5);
+            lowPresChamberLoss = 2.1 - lowPresChamberLoss;
+            lowPresChamberLoss *= 0.01;
+            lowPresChamberLoss = Math.Max(0, lowPresChamberLoss);
+
+            return (1 - thermalReactionLoss) * (1 - lowPresChamberLoss);
+        }
+
+        double CalculateGammaModified(double effExitAreaRatio)
+        {
+            double modGamma = -0.12 / (effExitAreaRatio - enginePrefab.frozenAreaRatio + 1.0) + 0.12;
+            modGamma += enginePrefab.nozzleGamma;
+            return modGamma;
+        }
+
         protected void CalculateEngineAndNozzlePerformanceProperties()
         {
             effectiveFrozenAreaRatio = NozzleUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
             double effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
 
-            double exitMach = NozzleUtils.MachFromAreaRatio(effectiveExitAreaRatio, enginePrefab.nozzleGamma);
+            double modGamma = CalculateGammaModified(effectiveExitAreaRatio);       //avg gamma, modified for expansion ratio
 
-            double isentropicRatio = 0.5 * (enginePrefab.nozzleGamma - 1.0);
+            double exitMach = NozzleUtils.MachFromAreaRatio(effectiveExitAreaRatio, modGamma);
+
+            double isentropicRatio = 0.5 * (modGamma - 1.0);
             isentropicRatio = (1.0 + isentropicRatio * enginePrefab.nozzleMach * enginePrefab.nozzleMach) / (1.0 + isentropicRatio * exitMach * exitMach);
 
             double exitTemp = isentropicRatio * enginePrefab.nozzleTempK;
-            
-            double exitSonicVelocity = Math.Sqrt(enginePrefab.nozzleGamma * GAS_CONSTANT / enginePrefab.nozzleMWgMol * exitTemp);
+
+            double exitSonicVelocity = Math.Sqrt(modGamma * GAS_CONSTANT / enginePrefab.nozzleMWgMol * exitTemp);
 
             exhaustVelocityOpt = exitSonicVelocity * exitMach;
 
-            exitPressureMPa = Math.Pow(isentropicRatio, enginePrefab.nozzleGamma / (enginePrefab.nozzleGamma - 1.0)) * enginePrefab.nozzlePresMPa;
+            exitPressureMPa = Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa;
 
             nozzle.UpdateNozzleStatus(areaRatio);
 
             nozzleDivEfficiency = nozzle.GetDivergenceEff();
-            nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.chamberTempK, enginePrefab.nozzleMWgMol, enginePrefab.nozzleGamma, throatDiameter * 0.5);
+            nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.chamberTempK, enginePrefab.nozzleMWgMol, modGamma, throatDiameter * 0.5);
 
             thrustVac = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + exitPressureMPa * nozzleDivEfficiency * nozzleArea * 1000.0);
             thrustSL = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + (exitPressureMPa * nozzleDivEfficiency - 0.1013) * nozzleArea * 1000.0);

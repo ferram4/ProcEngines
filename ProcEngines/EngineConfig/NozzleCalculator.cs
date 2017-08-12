@@ -249,32 +249,31 @@ namespace ProcEngines.EngineConfig
             return eff;
         }
 
-        public double CalcExhaustVelChangeFromFriction(double massFlow, double chamberPresMPa, double chamberTempK, double molWeightGMol, double gamma, double throatRadius)
+        double CalcExhaustVelChangeFromFriction(double massFlow, double chamberPresMPa, double chamberTempK, double molWeightGMol, double gamma, double throatRadius)
         {
             double delV = 0;
 
-            double gammaDrag = 1 * gamma;
-
-            double gammaFactor = gammaDrag - 1.0;
+            double gammaFactor = gamma - 1.0;
             gammaFactor *= 0.5;
 
-            double gammaExp = -gammaDrag / (gammaDrag - 1.0);
+            double gammaExp = -gamma / (gamma - 1.0);
 
-            double cumulativeDistance = throatRadius * 0.1;
+            double cumulativeDistance = throatRadius * 0.001;
 
             Vector2d point1 = nozzlePoints[0];
             double areaRat1 = point1.y * point1.y;
-            double mach1 = 1.0;// NozzleUtils.MachFromAreaRatioSubsonic(areaRat1, gamma);    //should be Mach 1 here
+            double mach1 = NozzleUtils.MachFromAreaRatioSubsonic(areaRat1, gamma);    //should be Mach 1 here
             double drag1 = mach1 * mach1 * gammaFactor + 1.0;
             drag1 = Math.Pow(drag1, gammaExp);
 
             double temp1 = chamberTempK / CalcStagTempFactor(mach1, gamma);
             double visc1 = CalcApproxDynVisc(molWeightGMol, temp1);
-            double reynoldsScalingFactor1 = ReynoldsCalcScalingFactor(chamberPresMPa, chamberTempK, molWeightGMol, gammaDrag);
-            double reynolds1 = CalcReynoldsNumber(mach1, gammaDrag, cumulativeDistance, visc1, reynoldsScalingFactor1);
+            double reynoldsScalingFactor1 = ReynoldsCalcScalingFactor(chamberPresMPa, chamberTempK, molWeightGMol, gamma);
+            double reynolds1 = CalcReynoldsNumber(mach1, gamma, cumulativeDistance, visc1, reynoldsScalingFactor1);
 
             drag1 *= mach1 * mach1 * CalcCompressFriction(reynolds1);
             drag1 *= point1.y;
+
 
             for (int i = 1; i < nozzlePoints.Length; ++i)
             {
@@ -299,10 +298,10 @@ namespace ProcEngines.EngineConfig
 
                 double temp2 = chamberTempK / CalcStagTempFactor(mach2, gamma);
                 double visc2 = CalcApproxDynVisc(molWeightGMol, temp2);
-                double reynoldsScalingFactor2 = ReynoldsCalcScalingFactor(chamberPresMPa, chamberTempK, molWeightGMol, gammaDrag);
-                double reynolds2 = CalcReynoldsNumber(mach2, gammaDrag, cumulativeDistance, visc2, reynoldsScalingFactor2);
+                double reynoldsScalingFactor2 = ReynoldsCalcScalingFactor(chamberPresMPa, chamberTempK, molWeightGMol, gamma);
+                double reynolds2 = CalcReynoldsNumber(mach2, gamma, cumulativeDistance, visc2, reynoldsScalingFactor2);
 
-                drag2 *= mach2 * mach2 * CalcCompressFriction(reynolds1);
+                drag2 *= mach2 * mach2 * CalcCompressFriction(reynolds2);
                 drag2 *= point2.y;
 
 
@@ -313,7 +312,7 @@ namespace ProcEngines.EngineConfig
             }
 
             delV *= chamberPresMPa;
-            delV *= gammaDrag;
+            delV *= gamma;
             delV /= massFlow;
             delV *= 1000.0;
 
@@ -322,7 +321,7 @@ namespace ProcEngines.EngineConfig
             return delV;
         }
 
-        public double ReynoldsCalcScalingFactor(double chamPresMPa, double chamTempK, double molWeightGMol, double gamma)
+        double ReynoldsCalcScalingFactor(double chamPresMPa, double chamTempK, double molWeightGMol, double gamma)
         {
             double factor = GAS_CONSTANT * chamTempK;
             factor = gamma * molWeightGMol / factor;
@@ -332,7 +331,7 @@ namespace ProcEngines.EngineConfig
             return factor;
         }
 
-        public double CalcReynoldsNumber(double mach, double gamma, double dist, double visc, double scalingFactor)
+        double CalcReynoldsNumber(double mach, double gamma, double dist, double visc, double scalingFactor)
         {
             double exp = gamma - 1;
             exp *= 0.5;
@@ -350,9 +349,9 @@ namespace ProcEngines.EngineConfig
             return reynolds;
         }
 
-        public double CalcCompressFriction(double reynolds)
+        double CalcCompressFriction(double reynolds)
         {
-            double Cf = 0.0512;
+            double Cf = 0.074;
             Cf *= Math.Pow(reynolds, -0.2);
             return Cf;
             /*double result = gamma - 1.0;
@@ -367,7 +366,7 @@ namespace ProcEngines.EngineConfig
             return result;*/
         }
 
-        public double CalcStagTempFactor(double mach, double gamma)
+        double CalcStagTempFactor(double mach, double gamma)
         {
             double result = gamma - 1.0;
             result *= 0.5;
@@ -379,7 +378,7 @@ namespace ProcEngines.EngineConfig
         }
 
         //Taken from pg 101, Design of Liquid Propellant Rocket Engines, 2e, Huzel and Huang
-        public double CalcApproxDynVisc(double molWeightGMol, double temp)
+        double CalcApproxDynVisc(double molWeightGMol, double temp)
         {
             double result = Math.Pow(temp, 0.6);
             result *= Math.Sqrt(molWeightGMol);
@@ -392,7 +391,7 @@ namespace ProcEngines.EngineConfig
         }
 
         //Taken from pg 101, Design of Liquid Propellant Rocket Engines, 2e, Huzel and Huang
-        public double CalcApproxPrandtlNumber(double gamma)
+        double CalcApproxPrandtlNumber(double gamma)
         {
             double result = 9.0 * gamma - 5.0;
             result = 4 * gamma / result;

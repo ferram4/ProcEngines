@@ -27,7 +27,6 @@ namespace ProcEngines
 {
     public struct EngineDataPrefab
     {
-
         public double OFRatio;
         public double chamberPresMPa;
         public double chamberTempK;

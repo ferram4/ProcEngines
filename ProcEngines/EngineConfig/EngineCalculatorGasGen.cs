@@ -100,7 +100,7 @@ namespace ProcEngines.EngineConfig
 
         void SolveGasGenTurbine(bool oxRich)
         {
-            double gasGenInjectorPresDrop = injectorPressureRatioDrop * 2.0 / 3.0;
+            double gasGenInjectorPresDrop = injectorPressureRatioDrop * 3.0 / 2.0;
             if (gasGenInjectorPresDrop < 0.2)
                 gasGenInjectorPresDrop = 0.2;
 
@@ -115,7 +115,7 @@ namespace ProcEngines.EngineConfig
 
             turbinePresRatio = Math.Min(turbinePresRatio, Math.Pow(turbineInletTempK / outputTempMin, -1/gammaPower));    //add stop for ensuring that not too much power is extracted
 
-            turbinePresRatio = Math.Min(turbinePresRatio, 20);      //add upper limit for pres ratio
+            turbinePresRatio = Math.Min(turbinePresRatio, 16);      //add upper limit for pres ratio
 
             /*double gasGenOFRatio = gasGenPrefab.OFRatio;
             double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
