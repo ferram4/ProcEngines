@@ -97,6 +97,28 @@ namespace ProcEngines.EngineConfig
             GenerateNozzleCurve();
         }
 
+        public double GetFracLengthAtArea(double areaRatio)
+        {
+            double radiusFrac = Math.Sqrt(areaRatio);
+
+            double point1 = nozzlePoints[POINTS_CONVERGING_ARC].y;
+            for(int i = POINTS_CONVERGING_ARC + 1; i < nozzlePoints.Length; ++i)
+            {
+                double point2 = nozzlePoints[i].y;
+                if(point2 > radiusFrac)
+                {
+                    double indexFactor = radiusFrac - point1;
+                    indexFactor /= (point2 - point1);        //this gives us a pseudo-index factor that can be used to calculate properties between the input data
+
+                    double length = (nozzlePoints[i].x - nozzlePoints[i - 1].x) * indexFactor + nozzlePoints[i - 1].x;
+
+                    return length / E.x;
+                }
+            }
+
+            return 1.0;
+        }
+
         void CalculateExitInflectionAngles()
         {
             switch (shapeType)

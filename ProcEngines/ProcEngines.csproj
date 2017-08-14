@@ -64,6 +64,7 @@
     <Compile Include="PropellantConfig\PropellantProperties.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StructuralMaterialLibrary.cs" />
+    <Compile Include="TurbineExhaustEnum.cs" />
     <Compile Include="TurbopumpArrangementEnum.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

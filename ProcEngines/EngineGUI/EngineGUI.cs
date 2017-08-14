@@ -150,11 +150,11 @@ namespace ProcEngines.EngineGUI
             //O/F Ratio
             chamberoFRatio = GUIUtils.TextEntryForDoubleWithButtons("Chamber O/F Ratio:", 125, chamberoFRatio, 0.01, 0.1, 50);
             //Chamber Pressure
-            chamberPresMPa = GUIUtils.TextEntryForDoubleWithButtons("Chamber Pres, MPa:", 125, chamberPresMPa, 0.1, 0.5, 50);
+            chamberPresMPa = GUIUtils.TextEntryForDoubleWithButtons("Chamber Pres, MPa:", 125, chamberPresMPa, 0.1, 1.0, 50);
             //Throat Diameter
             throatDiam = GUIUtils.TextEntryForDoubleWithButtons("Throat Diam, m:", 125, throatDiam, 0.01, 0.1, 50);
             //Area Ratio
-            areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 0.1, 1, 50);
+            areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 0.1, 1.0, 50);
 
             engineCalcBase.SetEngineProperties(biPropellantConfigs.ActiveSelection, chamberoFRatio, chamberPresMPa, areaRatio, throatDiam);
             GUILayout.EndVertical();

@@ -38,6 +38,7 @@ namespace ProcEngines.EngineConfig
 
         static FloatCurve pumpEffFromSpecificSpeed;
         static FloatCurve pumpEffMultFromFlowrate;
+        static FloatCurve turbineEffFromIsentropicVelRatio;
 
         public static GUIDropDown<TurbopumpArrangementEnum> turbopumpArrangementSelector;
         TurbopumpArrangementEnum turbopumpArrangement = TurbopumpArrangementEnum.DIRECT_DRIVE;
@@ -72,6 +73,10 @@ namespace ProcEngines.EngineConfig
         int oxPumpStages;
 
         double turbinePresRatio;
+        double turbineTempRatio;
+        double turbineEfficiency;
+        EngineDataPrefab turbineInletConditions;
+        double turbineMassFlow;
 
         public TurbopumpCalculator(BiPropellantConfig config, EngineCalculatorBase engineCalc)
         {
@@ -95,6 +100,11 @@ namespace ProcEngines.EngineConfig
                 };
                 turbopumpArrangementSelector = new GUIDropDown<TurbopumpArrangementEnum>(turbopumpString, turbopumpEnums);
             }
+        }
+
+        public void UpdateMixture(BiPropellantConfig config)
+        {
+            biPropConfig = config;
         }
 
         public void UpdateTurbopumpArrangement(TurbopumpArrangementEnum newArranagement, bool hasInducers, int oxPumpStages, int fuelPumpStages)
@@ -129,6 +139,7 @@ namespace ProcEngines.EngineConfig
 
             oxDens = biPropConfig.GetOxDensity();
             fuelDens = biPropConfig.GetFuelDensity();
+
             oxMaxNPSH = CalculateNetPositiveSuctionHead(oxAux, oxDens, tankPresMPa);
             fuelMaxNPSH = CalculateNetPositiveSuctionHead(fuelAux, fuelDens, tankPresMPa);
 
@@ -162,30 +173,8 @@ namespace ProcEngines.EngineConfig
             oxPumpSpecificSpeed = oxPumpRotationRate * sqrtOxFlow * Math.Pow(oxPumpStages / oxPumpHead, 0.75);
             fuelPumpSpecificSpeed = fuelPumpRotationRate * sqrtFuelFlow * Math.Pow(fuelPumpStages / fuelPumpHead, 0.75);
 
-            /*if(turbopumpArrangement == TurbopumpArrangementEnum.DIRECT_DRIVE)
-            {
-                if (oxPumpSpecificSpeed > fuelPumpSpecificSpeed && fuelPumpSpecificSpeed > 4.0)
-                {
-
-                    double speedMult = 4.0 / fuelPumpSpecificSpeed;
-                    fuelPumpSpecificSpeed *= speedMult;
-                    oxPumpSpecificSpeed *= speedMult;
-                    oxPumpRotationRate *= speedMult;
-                    fuelPumpRotationRate *= speedMult;
-
-                }
-                else if (oxPumpSpecificSpeed < fuelPumpSpecificSpeed && oxPumpSpecificSpeed > 4.0)
-                {
-                    double speedMult = 4.0 / oxPumpSpecificSpeed;
-                    fuelPumpSpecificSpeed *= speedMult;
-                    oxPumpSpecificSpeed *= speedMult;
-                    oxPumpRotationRate *= speedMult;
-                    fuelPumpRotationRate *= speedMult;
-                }
-            }*/
-
-            oxPumpEfficiency = CalculateEfficiency(oxPumpSpecificSpeed, oxPumpVolFlowrate, oxAux.dynViscosity, oxPumpStages, true);
-            fuelPumpEfficiency = CalculateEfficiency(fuelPumpSpecificSpeed, fuelPumpVolFlowrate, fuelAux.dynViscosity, fuelPumpStages, false);
+            oxPumpEfficiency = CalculatePumpEfficiency(oxPumpSpecificSpeed, oxPumpVolFlowrate, oxAux.dynViscosity, oxPumpStages, true);
+            fuelPumpEfficiency = CalculatePumpEfficiency(fuelPumpSpecificSpeed, fuelPumpVolFlowrate, fuelAux.dynViscosity, fuelPumpStages, false);
 
             if (turbopumpArrangement == TurbopumpArrangementEnum.GEAR_REDUCTION)
             {
@@ -194,15 +183,49 @@ namespace ProcEngines.EngineConfig
             else
                 mechanicalEfficiency = 1.0;
 
-            oxPumpPower = this.massFlowOxTotal * this.oxPumpPresRiseMPa * 1000000.0 / (oxDens * oxPumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            fuelPumpPower = this.massFlowFuelTotal * this.fuelPumpPresRiseMPa * 1000000.0 / (fuelDens * fuelPumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            oxPumpPower = oxPumpVolFlowrate * this.oxPumpPresRiseMPa * 1000000.0 / oxPumpEfficiency;        //convert MPa to Pa, but allow tonnes to cancel
+            fuelPumpPower = fuelPumpVolFlowrate * this.fuelPumpPresRiseMPa * 1000000.0 / fuelPumpEfficiency;        //convert MPa to Pa, but allow tonnes to cancel
         }
 
-        public double RequiredPower()
+        public double GetTotalRequiredPower()
         {
             double powerReq = oxPumpPower;
             powerReq += fuelPumpPower;
             return powerReq / mechanicalEfficiency;
+        }
+
+        public double GetTurbineExitTemp()
+        {
+            return turbineInletConditions.chamberTempK / turbineTempRatio;
+        }
+
+        public void CalculateTurbineProperties(double turbinePresRatio, EngineDataPrefab turbineInletConditions)
+        {
+            this.turbineInletConditions = turbineInletConditions;
+            CalculateTurbineProperties(turbinePresRatio);
+        }
+
+        public void CalculateTurbineProperties(double turbinePresRatio)
+        {
+            this.turbinePresRatio = turbinePresRatio;
+
+            double gammaPower = (turbineInletConditions.nozzleGamma - 1.0) / turbineInletConditions.nozzleGamma;
+            turbineTempRatio = Math.Pow(turbinePresRatio, gammaPower);
+
+            turbineEfficiency = CalculateTurbineEfficiency();
+
+            //turbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gammaPower));
+            //turbineMassFlow *= turbineInletConditions.chamberCp * turbineInletConditions.chamberTempK;
+            //turbineMassFlow = GetTotalRequiredPower() / (1000.0 * turbineMassFlow * turbineEfficiency);   //convert to tonnes
+        }
+        
+        public double GetTurbineMassFlow()
+        {
+            turbineMassFlow = (1.0 - 1.0 / turbineTempRatio);
+            turbineMassFlow *= turbineInletConditions.chamberCp * turbineInletConditions.chamberTempK;
+            turbineMassFlow = GetTotalRequiredPower() / (1000.0 * turbineMassFlow * turbineEfficiency);   //convert to tonnes
+
+            return turbineMassFlow;
         }
 
         double CalculateNetPositiveSuctionHead(PropellantProperties properties, double dens, double tankPresMPa)
@@ -213,7 +236,7 @@ namespace ProcEngines.EngineConfig
             return NPSH;
         }
 
-        double CalculateEfficiency(double specificSpeed, double volFlowRate, double viscosity, int stages, bool oxPump)
+        double CalculatePumpEfficiency(double specificSpeed, double volFlowRate, double viscosity, int stages, bool oxPump)
         {
             double eff = pumpEffFromSpecificSpeed.Evaluate((float)specificSpeed) * pumpEffMultFromFlowrate.Evaluate((float)volFlowRate);
 
@@ -222,6 +245,19 @@ namespace ProcEngines.EngineConfig
                 eff *= 0.98;    //tolerance efficiency loss for ox pumps to avoid friction destroying them
 
             return eff;
+        }
+
+        double CalculateTurbineEfficiency()
+        {
+            double pitchLineVelocity = 250;// more typical value //500;     //max value possible
+
+            double theoreticalSpoutingVel = 1.0 - Math.Pow(turbinePresRatio, (1.0 - turbineInletConditions.nozzleGamma) / turbineInletConditions.nozzleGamma);
+            theoreticalSpoutingVel *= turbineInletConditions.chamberTempK * turbineInletConditions.chamberCp * 2.0;
+            theoreticalSpoutingVel = Math.Sqrt(theoreticalSpoutingVel);
+
+            double isentropicVelRatio = pitchLineVelocity / theoreticalSpoutingVel;
+
+            return (double)turbineEffFromIsentropicVelRatio.Evaluate((float)isentropicVelRatio);
         }
 
         void LoadEfficiencyCurves()
@@ -252,6 +288,19 @@ namespace ProcEngines.EngineConfig
                 else if (splitString.Length == 4)
                     pumpEffMultFromFlowrate.Add(float.Parse(splitString[0]), float.Parse(splitString[1]), float.Parse(splitString[2]), float.Parse(splitString[3]));
             }
+
+            node = turboPropEffNode.GetNode("TurbineEffFromIsentropicVelRatio");
+            turbineEffFromIsentropicVelRatio = new FloatCurve();
+
+            vals = node.GetValues("key");
+            for (int i = 0; i < vals.Length; ++i)
+            {
+                string[] splitString = vals[i].Split(new char[] { ',', ' ', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                if (splitString.Length == 2)
+                    turbineEffFromIsentropicVelRatio.Add(float.Parse(splitString[0]), float.Parse(splitString[1]));
+                else if (splitString.Length == 4)
+                    turbineEffFromIsentropicVelRatio.Add(float.Parse(splitString[0]), float.Parse(splitString[1]), float.Parse(splitString[2]), float.Parse(splitString[3]));
+            }
         }
 
         #region GUI
@@ -277,7 +326,7 @@ namespace ProcEngines.EngineConfig
 
                 //Fuel Pump Stages
                 int tmpoxPumpStages = oxPumpStages;
-                tmpoxPumpStages = GUIUtils.TextEntryForIntWithButton("Ox Pump Stages:", 125, tmpoxPumpStages, 1);
+                tmpoxPumpStages = GUIUtils.TextEntryForIntWithButton("Ox Pump Stages:", 125, tmpoxPumpStages, 50);
 
                 //Ox Pump Power
                 GUILayout.BeginHorizontal();
@@ -289,15 +338,15 @@ namespace ProcEngines.EngineConfig
                 GUILayout.Label("Ox Pump Eff: ", GUILayout.Width(125));
                 GUILayout.Label((oxPumpEfficiency * 100).ToString("F1") + " %");
                 GUILayout.EndHorizontal();
-                //Ox Pump SS
+                //Ox Pump vol
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Ox Spec Spd: ", GUILayout.Width(125));
-                GUILayout.Label((oxPumpSpecificSpeed).ToString("F1"));
+                GUILayout.Label("Ox Vol Flow: ", GUILayout.Width(125));
+                GUILayout.Label((oxPumpVolFlowrate).ToString("F1") + " m^3/s");
                 GUILayout.EndHorizontal();
 
                 //Fuel Pump Stages
                 int tmpfuelPumpStages = fuelPumpStages;
-                tmpfuelPumpStages = GUIUtils.TextEntryForIntWithButton("Fuel Pump Stages:", 125, tmpfuelPumpStages, 1);
+                tmpfuelPumpStages = GUIUtils.TextEntryForIntWithButton("Fuel Pump Stages:", 125, tmpfuelPumpStages, 50);
 
                 //Fuel Pump Power
                 GUILayout.BeginHorizontal();
@@ -309,10 +358,10 @@ namespace ProcEngines.EngineConfig
                 GUILayout.Label("Fuel Pump Eff: ", GUILayout.Width(125));
                 GUILayout.Label((fuelPumpEfficiency * 100).ToString("F1") + " %");
                 GUILayout.EndHorizontal();
-                //Fuel Pump SS
+                //Fuel Pump vol
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Fuel Spec Spd: ", GUILayout.Width(125));
-                GUILayout.Label((fuelPumpSpecificSpeed).ToString("F1"));
+                GUILayout.Label("Fuel Vol Flow: ", GUILayout.Width(125));
+                GUILayout.Label((fuelPumpVolFlowrate).ToString("F1") + " m^3/s");
                 GUILayout.EndHorizontal();
 
                 //Turbine Pres Ratio
@@ -321,6 +370,11 @@ namespace ProcEngines.EngineConfig
                 GUILayout.Label(turbinePresRatio.ToString("F3"));
                 GUILayout.EndHorizontal();
 
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Turbine Eff: ", GUILayout.Width(125));
+                GUILayout.Label((turbineEfficiency * 100).ToString("F1") + " %");
+                GUILayout.EndHorizontal(); 
+                
                 UpdateTurbopumpArrangement(turbopumpArrangementSelector.ActiveSelection, tmpHasInducers, tmpoxPumpStages, tmpfuelPumpStages);
             }
         }

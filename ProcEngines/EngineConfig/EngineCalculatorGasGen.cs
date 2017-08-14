@@ -31,16 +31,19 @@ namespace ProcEngines.EngineConfig
     {
         double oxPumpPresRiseMPa;
         double fuelPumpPresRiseMPa;
-        double oxPumpPowerW;
-        double fuelPumpPowerW;
 
         double turbinePresRatio;
         double turbineInletTempK = 1000;
         double turbineMassFlow;
-        double turbinePower;
+        double turbineBackPresMPa;
 
         static double maxTurbineInletK = 1350;
         static double minTurbineInletK = 700;
+
+        public static GUIDropDown<TurbineExhaustEnum> turbineExhaustSelector;
+        TurbineExhaustEnum turbineExhaustType = TurbineExhaustEnum.DIRECT;
+        double exhaustArea;
+        double nozzleExhaustArea;
 
         TurbopumpCalculator turbopump;
 
@@ -60,7 +63,21 @@ namespace ProcEngines.EngineConfig
         public override void CalculateEngineProperties()
         {
             if (turbopump == null)
+            {
                 turbopump = new TurbopumpCalculator(biPropConfig, this);
+
+                string[] turbineExhaustString = new string[]{
+                    "Direct",
+                    "Into Nozzle"
+                };
+                TurbineExhaustEnum[] turbExhaustEnums = new TurbineExhaustEnum[]{
+                    TurbineExhaustEnum.DIRECT,
+                    TurbineExhaustEnum.INTO_NOZZLE
+                };
+
+                turbineExhaustSelector = new GUIDropDown<TurbineExhaustEnum>(turbineExhaustString, turbExhaustEnums);
+            }
+
 
             CalculateMainCombustionChamberParameters();
             AssumePumpPressureRise();
@@ -94,6 +111,27 @@ namespace ProcEngines.EngineConfig
             if (!unchanged)
                 CalculateEngineProperties();
         }
+
+        void UpdateTurbineExhaust(TurbineExhaustEnum turbineExhaustType, double nozzleExhaustArea)
+        {
+            bool unchanged = true;
+
+            if (nozzleExhaustArea > areaRatio)
+                nozzleExhaustArea = areaRatio;
+            if (nozzleExhaustArea < enginePrefab.frozenAreaRatio)
+                nozzleExhaustArea = enginePrefab.frozenAreaRatio;
+
+            unchanged &= this.nozzleExhaustArea == nozzleExhaustArea;
+            unchanged &= this.turbineExhaustType == turbineExhaustType;
+
+            if (!unchanged)
+            {
+                this.nozzleExhaustArea = nozzleExhaustArea;
+                this.turbineExhaustType = turbineExhaustType;
+                CalculateEngineProperties();
+            }
+        }
+        
         #endregion
 
         #region TurbopumpCalc
@@ -111,28 +149,20 @@ namespace ProcEngines.EngineConfig
 
             double gasGenPresMPa = chamberPresMPa * (1.0 + injectorPressureRatioDrop) / (1.0 + gasGenInjectorPresDrop);
 
-            turbinePresRatio = gasGenPresMPa / (0.3);       //assume ~3 atm ~= 0.3MPa backpressure
-
             gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(gasGenPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
 
+            CalcTurbineExhaustBackPressure();
+            turbinePresRatio = gasGenPresMPa / turbineBackPresMPa;
+
+
             double gammaPower = -(gasGenPrefab.nozzleGamma - 1.0) / gasGenPrefab.nozzleGamma;
-            double outputTempMin = 400;
+            double[] gasGenOFRatio = new double[] { gasGenPrefab.OFRatio };
 
-            turbinePresRatio = Math.Min(turbinePresRatio, Math.Pow(turbineInletTempK / outputTempMin, -1/gammaPower));    //add stop for ensuring that not too much power is extracted
 
-            turbinePresRatio = Math.Min(turbinePresRatio, 16);      //add upper limit for pres ratio
+            turbopump.UpdateMixture(biPropConfig);
+            turbopump.CalculateTurbineProperties(turbinePresRatio, gasGenPrefab);
 
-            /*double gasGenOFRatio = gasGenPrefab.OFRatio;
-            double gammaPower = gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0);
-            double Cp = gasGenPrefab.CalculateCp();*/
-
-            double[] gasGenOFRatio_gammaPower_Cp_Dens = new double[] { gasGenPrefab.OFRatio,
-                gammaPower,
-                gasGenPrefab.chamberCp,
-                biPropConfig.GetOxDensity(),
-                biPropConfig.GetFuelDensity()};
-
-            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp_Dens, 0, 1.5 * massFlowChamber, 0.000001, int.MaxValue);
+            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio, 0, 1.5 * massFlowChamber, 0.000001, int.MaxValue);
 
             massFlowTotal += turbineMassFlow;
 
@@ -141,30 +171,96 @@ namespace ProcEngines.EngineConfig
             overallOFRatio += gasGenPrefab.OFRatio * turbineMassFlow / massFlowTotal;
 
             massFlowFrac = turbineMassFlow / massFlowTotal;
+
+            CalcTurbineExhaustThrust();
         }
 
-        double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp_Dens)
+        double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio)
         {
-            double turbineEfficiency = 0.6;             //TODO: make vary with tech level
-
-            double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp_Dens[0] + 1.0);
-            double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio_gammaPower_Cp_Dens[0];
+            double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio[0] + 1.0);
+            double turbineMassFlowOx = turbineMassFlowFuel * gasGenOFRatio[0];
 
             double massFlowFuelTotal = turbineMassFlowFuel + massFlowChamberFuel;
             double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
 
             turbopump.CalculatePumpProperties(massFlowOxTotal, massFlowFuelTotal, tankPresMPa, oxPumpPresRiseMPa, fuelPumpPresRiseMPa);
+            turbopump.CalculateTurbineProperties(turbinePresRatio, gasGenPrefab);
 
-            double requiredPower = turbopump.RequiredPower();
-
-            turbinePower = requiredPower / (turbineEfficiency);
-
-            double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gasGenOFRatio_gammaPower_Cp_Dens[1]));
-            checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp_Dens[2] * turbineInletTempK;
-            checkTurbineMassFlow = turbinePower / (1000.0 * checkTurbineMassFlow);   //convert to tonnes
-
-            double massFlowDiff = (checkTurbineMassFlow - turbineMassFlow);
+            double massFlowDiff = (turbopump.GetTurbineMassFlow() - turbineMassFlow);
             return massFlowDiff;
+        }
+
+        void CalcTurbineExhaustBackPressure()
+        {
+            double exhaustPresMPa = 0.1013 * 1.5;      //1.5 atm
+
+            if(turbineExhaustType == TurbineExhaustEnum.INTO_NOZZLE)
+            {
+                double machAtArea = NozzleUtils.MachFromAreaRatio(nozzleExhaustArea, modGamma);
+
+                double isentropicRatio = 0.5 * (modGamma - 1.0);
+                isentropicRatio = (1.0 + isentropicRatio * enginePrefab.nozzleMach * enginePrefab.nozzleMach) / (1.0 + isentropicRatio * machAtArea * machAtArea);
+
+                exhaustPresMPa = Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa;       //gets the pressure in the nozzle at this area ratio
+
+                exhaustPresMPa *= (1.05);   //add some extra backpressure due to piping
+            }
+
+            turbineBackPresMPa = (gasGenPrefab.nozzleGamma - 1.0) * 0.5 + 1.0;
+            turbineBackPresMPa = Math.Pow(turbineBackPresMPa, gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0));
+            turbineBackPresMPa *= exhaustPresMPa;
+        }
+
+        void CalcTurbineExhaustThrust()
+        {
+            double nozzleInletTemp = turbopump.GetTurbineExitTemp();
+            
+            if (turbineExhaustType == TurbineExhaustEnum.DIRECT)
+            {
+                //Calc exit area, which is the throat area since this is a choked converging nozzle
+                exhaustArea = (gasGenPrefab.nozzleGamma + 1.0) / (gasGenPrefab.nozzleGamma - 1.0);
+                exhaustArea = Math.Pow(2.0 / (gasGenPrefab.nozzleGamma + 1.0), exhaustArea);
+                exhaustArea *= gasGenPrefab.nozzleGamma * enginePrefab.nozzleMWgMol;
+                exhaustArea /= (GAS_CONSTANT * nozzleInletTemp);
+                exhaustArea = Math.Sqrt(exhaustArea);
+                exhaustArea *= turbineBackPresMPa;
+                exhaustArea = turbineMassFlow / exhaustArea;
+                exhaustArea *= 0.001;
+                
+                double exhaustExitTemp = nozzleInletTemp / (1.0 + (gasGenPrefab.nozzleGamma - 1.0) * 0.5);
+
+                double exhaustExitVel = Math.Sqrt(gasGenPrefab.nozzleGamma * exhaustExitTemp * GAS_CONSTANT / gasGenPrefab.nozzleMWgMol);
+
+                double exhaustThrustMomentum = exhaustExitVel * turbineMassFlow;
+                thrustVacAux += exhaustThrustMomentum;
+                thrustSLAux += exhaustThrustMomentum;
+
+                double exhaustExitPres = turbineBackPresMPa / Math.Pow((1.0 + (gasGenPrefab.nozzleGamma - 1.0) * 0.5), gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0));
+
+                thrustVacAux += exhaustExitPres * exhaustArea * 1000.0;
+                thrustSLAux += (exhaustExitPres - 0.1013) * exhaustArea * 1000.0;
+            }
+            else if(turbineExhaustType == TurbineExhaustEnum.INTO_NOZZLE)
+            {
+                double exhaustExpansionRatio = areaRatio / nozzleExhaustArea;
+
+                double machThroughExpansion = exhaustExpansionRatio <= 1.0 ? 1.0 : NozzleUtils.MachFromAreaRatio(exhaustExpansionRatio, gasGenPrefab.nozzleGamma);
+
+                double exhaustExitTemp = nozzleInletTemp / (1.0 + (gasGenPrefab.nozzleGamma - 1.0) * 0.5 * machThroughExpansion * machThroughExpansion);
+
+                double exhaustExitVel = Math.Sqrt(gasGenPrefab.nozzleGamma * exhaustExitTemp * GAS_CONSTANT / gasGenPrefab.nozzleMWgMol) * machThroughExpansion;
+
+                double exhaustThrustMomentum = exhaustExitVel * turbineMassFlow;
+
+                exhaustThrustMomentum *= nozzleDivEfficiency;
+
+                double relDistanceDownNozzle = nozzle.GetFracLengthAtArea(nozzleExhaustArea);
+
+                exhaustThrustMomentum *= (1.0 * relDistanceDownNozzle + nozzleFrictionEfficiency * (1.0 - relDistanceDownNozzle));
+
+                thrustVacAux += exhaustThrustMomentum;
+                thrustSLAux += exhaustThrustMomentum;
+            }
         }
         #endregion
 
@@ -217,7 +313,36 @@ namespace ProcEngines.EngineConfig
             if (showExhaust)
             {
                 //Turbopump Pump Setup
-                GUILayout.Label("Select straight, exhaust to nozzle, or vernier");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Turbine Exhaust:", GUILayout.Width(125));
+                turbineExhaustSelector.GUIDropDownDisplay();
+                GUILayout.EndHorizontal();
+
+                double tmpNozzleExhaustArea = nozzleExhaustArea;
+                if(turbineExhaustType == TurbineExhaustEnum.DIRECT)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Turbine Exhaust Area: ", GUILayout.Width(125));
+                    GUILayout.Label(exhaustArea.ToString("F3") + " m^3");
+                    GUILayout.EndHorizontal();
+                }
+                else if (turbineExhaustType == TurbineExhaustEnum.INTO_NOZZLE)
+                {
+                    tmpNozzleExhaustArea = GUIUtils.TextEntryForDoubleWithButtons("Exhaust Area Ratio:", 125, tmpNozzleExhaustArea, 0.1, 1.0, 50);
+                }
+
+                //Turbine Exhaust Thrust
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Turbine Thrust Vac: ", GUILayout.Width(125));
+                GUILayout.Label(thrustVacAux.ToString("F3") + " kN");
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Turbine Thrust SL: ", GUILayout.Width(125));
+                GUILayout.Label(thrustSLAux.ToString("F3") + " kN");
+                GUILayout.EndHorizontal();
+
+                UpdateTurbineExhaust(turbineExhaustSelector.ActiveSelection, tmpNozzleExhaustArea);
             }
         }
         #endregion

@@ -97,7 +97,6 @@ namespace ProcEngines.PropellantConfig
                 mixtureData[i] = new BiPropMixtureRatioData(mixtureDataNodes[i], mixtureTitle, frozenAreaRatio);
                 mixtureOFRatios[i] = mixtureData[i].OFRatio;
             }
-
             chamberPresLimLow = mixtureData[0].MinChamPres;
             chamberPresLimHigh = mixtureData[0].MaxChamPres * 0.5;
         }

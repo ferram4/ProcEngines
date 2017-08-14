@@ -29,8 +29,8 @@ namespace ProcEngines.EngineConfig
 {
     class EngineCalculatorBase
     {
-        const double GAS_CONSTANT = 8314.459848;
-        const double G0 = 9.80665;
+        public const double GAS_CONSTANT = 8314.459848;
+        public const double G0 = 9.80665;
 
         string mixtureTitle;
         public BiPropellantConfig biPropConfig;
@@ -44,9 +44,10 @@ namespace ProcEngines.EngineConfig
         double throatArea;
         double nozzleArea;
         public double nozzleDiameter;
-        NozzleCalculator nozzle;
+        protected NozzleCalculator nozzle;
 
-        double effectiveFrozenAreaRatio;
+        protected double effectiveFrozenAreaRatio;
+        protected double effectiveExitAreaRatio;
         double exhaustVelocityOpt;
         double exitPressureMPa;
 
@@ -73,12 +74,16 @@ namespace ProcEngines.EngineConfig
 
         int ignitionCount = 1;
         
+
         public double thrustVac;
         public double thrustSL;
         public double massFlowTotal;
         public double specImpulseVac;
         public double specImpulseSL;
         public double overallOFRatio;
+        protected double thrustVacAux;
+        protected double thrustSLAux;
+        protected double modGamma;
 
         public double nozzleDivEfficiency = 1.0;
         public double nozzleFrictionEfficiency = 1.0;
@@ -136,18 +141,21 @@ namespace ProcEngines.EngineConfig
 
         void UpdateThrottleInjectorProperties(double minThrottle, double techLevel)
         {
+            bool unchanged = true;
+
             if (minThrottle < currentMinThrottleTech)
                 minThrottle = currentMinThrottleTech;
             if (minThrottle > 1.0)
                 minThrottle = 1.0;
 
-            if (this.minThrottle == minThrottle)
-                return;
+            unchanged &= this.minThrottle == minThrottle;
 
-
-            this.minThrottle = minThrottle;
-            UpdateInjectorPerformance();
-            CalculateEngineProperties();
+            if (!unchanged)
+            {
+                this.minThrottle = minThrottle;
+                UpdateInjectorPerformance();
+                CalculateEngineProperties();
+            }
         }
 
         void UpdateIgnitionProperties(int ignitionCount)
@@ -209,6 +217,8 @@ namespace ProcEngines.EngineConfig
 
             massFlowTotal = massFlowChamber;
             overallOFRatio = chamberOFRatio;
+
+            thrustVacAux = thrustSLAux = 0;
         }
 
         double CalculateChamberReactionEfficiency()
@@ -223,7 +233,9 @@ namespace ProcEngines.EngineConfig
             lowPresChamberLoss *= 0.01;
             lowPresChamberLoss = Math.Max(0, lowPresChamberLoss);
 
-            return (1 - thermalReactionLoss) * (1 - lowPresChamberLoss);
+            double injectorMixingEfficiency = 0.99;
+
+            return (1 - thermalReactionLoss) * (1 - lowPresChamberLoss) * injectorMixingEfficiency;
         }
 
         double CalculateGammaModified(double effExitAreaRatio)
@@ -236,9 +248,9 @@ namespace ProcEngines.EngineConfig
         protected void CalculateEngineAndNozzlePerformanceProperties()
         {
             effectiveFrozenAreaRatio = NozzleUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
-            double effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
+            effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
 
-            double modGamma = CalculateGammaModified(effectiveExitAreaRatio);       //avg gamma, modified for expansion ratio
+            modGamma = CalculateGammaModified(effectiveExitAreaRatio);       //avg gamma, modified for expansion ratio
 
             double exitMach = NozzleUtils.MachFromAreaRatio(effectiveExitAreaRatio, modGamma);
 
@@ -258,9 +270,16 @@ namespace ProcEngines.EngineConfig
             nozzleDivEfficiency = nozzle.GetDivergenceEff();
             nozzleFrictionEfficiency = nozzle.GetFrictionEff(exhaustVelocityOpt, massFlowChamber, chamberPresMPa, enginePrefab.chamberTempK, enginePrefab.nozzleMWgMol, modGamma, throatDiameter * 0.5);
 
-            thrustVac = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + exitPressureMPa * nozzleDivEfficiency * nozzleArea * 1000.0);
-            thrustSL = (exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency + (exitPressureMPa * nozzleDivEfficiency - 0.1013) * nozzleArea * 1000.0);
+            thrustVac = exhaustVelocityOpt * massFlowChamber * nozzleDivEfficiency * nozzleFrictionEfficiency * reactionEfficiency;
+            thrustSL = thrustVac;
+
+            thrustVac += exitPressureMPa * nozzleDivEfficiency * nozzleArea * 1000.0;
+            thrustSL += (exitPressureMPa * nozzleDivEfficiency - 0.1013) * nozzleArea * 1000.0;
+
             minThrustVac = thrustVac * minThrottle;
+
+            thrustVac += thrustVacAux;
+            thrustSL += thrustSLAux;
 
             specImpulseVac = thrustVac / (massFlowTotal * G0);
             specImpulseSL = thrustSL / (massFlowTotal * G0);
