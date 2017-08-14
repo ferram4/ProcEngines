@@ -63,7 +63,7 @@ namespace ProcEngines.EngineGUI
             return prevValue;
         }
 
-        public static int TextEntryForIntWithButtons(string label, int labelWidth, int prevValue, int fieldWidth)
+        public static int TextEntryForIntWithButton(string label, int labelWidth, int prevValue, int fieldWidth)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, GUILayout.Width(labelWidth));

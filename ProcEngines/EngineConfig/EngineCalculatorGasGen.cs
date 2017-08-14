@@ -42,6 +42,8 @@ namespace ProcEngines.EngineConfig
         static double maxTurbineInletK = 1350;
         static double minTurbineInletK = 700;
 
+        TurbopumpCalculator turbopump;
+
         EngineDataPrefab gasGenPrefab;
         double massFlowFrac;
         bool oxRich;
@@ -55,8 +57,11 @@ namespace ProcEngines.EngineConfig
         }
 
         #region EnginePerformanceCalc
-        protected override void CalculateEngineProperties()
+        public override void CalculateEngineProperties()
         {
+            if (turbopump == null)
+                turbopump = new TurbopumpCalculator(biPropConfig, this);
+
             CalculateMainCombustionChamberParameters();
             AssumePumpPressureRise();
             SolveGasGenTurbine(oxRich);
@@ -127,7 +132,7 @@ namespace ProcEngines.EngineConfig
                 biPropConfig.GetOxDensity(),
                 biPropConfig.GetFuelDensity()};
 
-            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp_Dens, 0, 0.25 * massFlowChamber, 0.000001, int.MaxValue);
+            turbineMassFlow = MathUtils.BrentsMethod(IterateSolveGasGenTurbine, gasGenOFRatio_gammaPower_Cp_Dens, 0, 1.5 * massFlowChamber, 0.000001, int.MaxValue);
 
             massFlowTotal += turbineMassFlow;
 
@@ -140,7 +145,6 @@ namespace ProcEngines.EngineConfig
 
         double IterateSolveGasGenTurbine(double turbineMassFlow, double[] gasGenOFRatio_gammaPower_Cp_Dens)
         {
-            double pumpEfficiency = 0.75;                //TODO: make vary with fuel type and with tech level
             double turbineEfficiency = 0.6;             //TODO: make vary with tech level
 
             double turbineMassFlowFuel = turbineMassFlow / (gasGenOFRatio_gammaPower_Cp_Dens[0] + 1.0);
@@ -149,10 +153,11 @@ namespace ProcEngines.EngineConfig
             double massFlowFuelTotal = turbineMassFlowFuel + massFlowChamberFuel;
             double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
 
-            oxPumpPowerW = massFlowOxTotal * oxPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[3] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
-            fuelPumpPowerW = massFlowFuelTotal * fuelPumpPresRiseMPa * 1000000.0 / (gasGenOFRatio_gammaPower_Cp_Dens[4] * pumpEfficiency);        //convert MPa to Pa, but allow tonnes to cancel
+            turbopump.CalculatePumpProperties(massFlowOxTotal, massFlowFuelTotal, tankPresMPa, oxPumpPresRiseMPa, fuelPumpPresRiseMPa);
 
-            turbinePower = (oxPumpPowerW + fuelPumpPowerW) / (turbineEfficiency);
+            double requiredPower = turbopump.RequiredPower();
+
+            turbinePower = requiredPower / (turbineEfficiency);
 
             double checkTurbineMassFlow = (1.0 - Math.Pow(turbinePresRatio, gasGenOFRatio_gammaPower_Cp_Dens[1]));
             checkTurbineMassFlow *= gasGenOFRatio_gammaPower_Cp_Dens[2] * turbineInletTempK;
@@ -165,7 +170,6 @@ namespace ProcEngines.EngineConfig
 
         #region GUI
         bool showGasGen = false;
-        bool showTurbopump = false;
         bool showExhaust = false;
 
         int oxRichInt = 0;
@@ -207,29 +211,7 @@ namespace ProcEngines.EngineConfig
 
         protected override void RightSideEngineGUI()
         {
-            if (GUILayout.Button("Turbopump Design"))
-                showTurbopump = !showTurbopump;
-            if (showTurbopump)
-            {
-                //Turbopump Pump Setup
-                GUILayout.Label("Select direct, gear, or 2-turbine");
-                
-                //Turbine Pres Ratio
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Turbine Pres Ratio: ", GUILayout.Width(125));
-                GUILayout.Label(turbinePresRatio.ToString("F3"));
-                GUILayout.EndHorizontal();
-                //Ox Pump Power
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Ox Pump Power: ", GUILayout.Width(125));
-                GUILayout.Label((oxPumpPowerW * 0.001).ToString("F1") + " kW");
-                GUILayout.EndHorizontal();
-                //Fuel Pump Power
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Fuel Pump Power: ", GUILayout.Width(125));
-                GUILayout.Label((fuelPumpPowerW * 0.001).ToString("F1") + " kW");
-                GUILayout.EndHorizontal();
-            }
+            turbopump.TurbopumpGUI();
             if (GUILayout.Button("Turbine Exhaust Design"))
                 showExhaust = !showExhaust;
             if (showExhaust)

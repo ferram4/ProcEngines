@@ -74,7 +74,7 @@ namespace ProcEngines.EngineGUI
         {
             InitStyles();
 
-            FARGUIDropDownDisplay display = FARGUIDropDownDisplay.Instance;
+            GUIDropDownWindow display = GUIDropDownWindow.Instance;
             toggleBtnState = GUILayout.Toggle(toggleBtnState, "▼ " + stringOptions[selectedOption] + " ▼", toggleBtnStyle, guiOptions);
 
             // Calcuate absolute regions for the button and dropdown list, this only works when
@@ -149,7 +149,7 @@ namespace ProcEngines.EngineGUI
             if (!isActive)
             {
                 toggleBtnState = isActive = true;
-                FARGUIDropDownDisplay.Instance.ActivateDisplay(this.GetHashCode(), btnRect, dropdownRect, OnDisplayList, listStyle);
+                GUIDropDownWindow.Instance.ActivateDisplay(this.GetHashCode(), btnRect, dropdownRect, OnDisplayList, listStyle);
                 InputLockManager.SetControlLock(ControlTypes.All, "DropdownScrollLock");
             }
         }
@@ -159,7 +159,7 @@ namespace ProcEngines.EngineGUI
             if (isActive)
             {
                 toggleBtnState = isActive = false;
-                FARGUIDropDownDisplay.Instance.DisableDisplay();
+                GUIDropDownWindow.Instance.DisableDisplay();
                 InputLockManager.RemoveControlLock("DropdownScrollLock");
             }
         }
@@ -184,10 +184,10 @@ namespace ProcEngines.EngineGUI
     }
 
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
-    public class FARGUIDropDownDisplay : MonoBehaviour
+    public class GUIDropDownWindow : MonoBehaviour
     {
-        private static FARGUIDropDownDisplay instance;
-        public static FARGUIDropDownDisplay Instance
+        private static GUIDropDownWindow instance;
+        public static GUIDropDownWindow Instance
         {
             get { return instance; }
         }

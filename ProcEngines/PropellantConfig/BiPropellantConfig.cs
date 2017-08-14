@@ -66,6 +66,9 @@ namespace ProcEngines.PropellantConfig
         PartResourceDefinition fuel;
         string oxidizerString;
         string fuelString;
+        public PartResourceDefinition Oxidizer { get { return oxidizer; } }
+        public PartResourceDefinition Fuel { get { return fuel; } }
+
 
         BiPropMixtureRatioData[] mixtureData;
         double[] mixtureOFRatios;

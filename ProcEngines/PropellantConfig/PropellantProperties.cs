@@ -40,6 +40,7 @@ namespace ProcEngines.PropellantConfig
         //Pump efficiency variables
         public double vaporPresMPaAtStorageTemp;
         public double suctionSpecificSpeed;
+        public double pressureRisePerStageMPa;
 
         public PropellantProperties(ConfigNode node, PartResourceDefinition resource)
         {
@@ -74,22 +75,41 @@ namespace ProcEngines.PropellantConfig
             }
 
             if (node.HasValue("vaporPresMPaAtStorageTemp"))
-            {
                 vaporPresMPaAtStorageTemp = double.Parse(node.GetValue("vaporPresMPaAtStorageTemp"));
-            }
             else
-            {
                 vaporPresMPaAtStorageTemp = 0.00227527;
-            }
 
             if (node.HasValue("suctionSpecificSpeed"))
-            {
                 suctionSpecificSpeed = double.Parse(node.GetValue("suctionSpecificSpeed"));
-            }
             else
-            {
                 suctionSpecificSpeed = 70;
-            }
+
+            if (node.HasValue("pressureRisePerStageMPa"))
+                pressureRisePerStageMPa = double.Parse(node.GetValue("pressureRisePerStageMPa"));
+            else
+                pressureRisePerStageMPa = 47;
+        }
+
+        public static bool CheckConfigResourcesExist(ConfigNode propConfig, out PartResourceDefinition res)
+        {
+            bool valid = true;
+            res = null;
+            string resString;
+
+            valid &= propConfig.HasValue("resource");
+
+            if (!valid)
+                return false;
+
+            resString = propConfig.GetValue("resource");
+
+            res = PartResourceLibrary.Instance.GetDefinition(resString);
+            valid &= res != null;
+
+            if (!valid)
+                return false;
+
+            return true;
         }
     }
 }

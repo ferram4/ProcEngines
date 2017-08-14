@@ -45,6 +45,13 @@ namespace ProcEngines.PropellantConfig
             get { return Instance.biPropConfigs; }
         }
 
+        Dictionary<PartResourceDefinition, PropellantProperties> auxPropellantProperties;
+
+        public static Dictionary<PartResourceDefinition, PropellantProperties> AuxPropellantProperties
+        {
+            get { return Instance.auxPropellantProperties; }
+        }
+
         //TODO: support monoprops, perhaps triprops
 
         PropellantMixtureLibrary()
@@ -63,6 +70,21 @@ namespace ProcEngines.PropellantConfig
                 ConfigNode node = biPropNodes[i];
                 if (BiPropellantConfig.CheckConfigResourcesExist(node))
                     biPropConfigs.Add(new BiPropellantConfig(node));
+            }
+
+            ConfigNode[] propellantAuxProperties = GameDatabase.Instance.GetConfigNodes("ProcEngPropAuxProperties");
+            auxPropellantProperties = new Dictionary<PartResourceDefinition, PropellantProperties>();
+
+            for (int i = 0; i < propellantAuxProperties.Length; ++i)
+            {
+                ConfigNode node = propellantAuxProperties[i];
+                PartResourceDefinition res = null;
+                if (PropellantProperties.CheckConfigResourcesExist(node, out res))
+                {
+                    PropellantProperties properties = new PropellantProperties(node, res);
+                    auxPropellantProperties.Add(res, properties);
+                }
+
             }
         }
 

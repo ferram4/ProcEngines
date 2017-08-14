@@ -22,31 +22,13 @@ SOFTWARE.*/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using ProcEngines.PropellantConfig;
 
-namespace ProcEngines.EngineConfig
+namespace ProcEngines
 {
-    class EngineCalculatorPresFed : EngineCalculatorBase
+    enum TurbopumpArrangementEnum
     {
-
-        public EngineCalculatorPresFed(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
-            : base(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter) { }
-
-        public override string EngineCalculatorType()
-        {
-            return "Pressure Fed";
-        }
-        
-        public override void CalculateEngineProperties()
-        {
-            CalculateMainCombustionChamberParameters();
-            CalcRequiredTankPressurization();
-            CalculateEngineAndNozzlePerformanceProperties();
-        }
-
-        void CalcRequiredTankPressurization()
-        {
-            tankPresMPa = chamberPresMPa * (1 + injectorPressureRatioDrop);
-        }
+        DIRECT_DRIVE,
+        GEAR_REDUCTION,
+        TWO_TURBINE
     }
 }

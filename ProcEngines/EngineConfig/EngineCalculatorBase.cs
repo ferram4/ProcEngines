@@ -177,7 +177,7 @@ namespace ProcEngines.EngineConfig
             return "NULL";
         }
 
-        protected virtual void CalculateEngineProperties()
+        public virtual void CalculateEngineProperties()
         {
         }
 
@@ -389,7 +389,7 @@ namespace ProcEngines.EngineConfig
                 GUILayout.Label("Select ignition system");
 
                 int tmpIgnitionCount = ignitionCount;
-                tmpIgnitionCount = GUIUtils.TextEntryForIntWithButtons("Num Ignitions:", 125, tmpIgnitionCount, 50);
+                tmpIgnitionCount = GUIUtils.TextEntryForIntWithButton("Num Ignitions:", 125, tmpIgnitionCount, 50);
 
                 UpdateIgnitionProperties(tmpIgnitionCount);
             } 
