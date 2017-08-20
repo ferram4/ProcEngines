@@ -42,7 +42,6 @@ namespace ProcEngines.EngineConfig
 
         public static GUIDropDown<TurbopumpArrangementEnum> turbopumpArrangementSelector;
         TurbopumpArrangementEnum turbopumpArrangement = TurbopumpArrangementEnum.DIRECT_DRIVE;
-        bool hasInducers = true;
 
         double fuelPumpPower;
         double oxPumpPower;
@@ -107,19 +106,17 @@ namespace ProcEngines.EngineConfig
             biPropConfig = config;
         }
 
-        public void UpdateTurbopumpArrangement(TurbopumpArrangementEnum newArranagement, bool hasInducers, int oxPumpStages, int fuelPumpStages)
+        public void UpdateTurbopumpArrangement(TurbopumpArrangementEnum newArranagement, int oxPumpStages, int fuelPumpStages)
         {
             bool unchanged = true;
 
             unchanged &= newArranagement == turbopumpArrangement;
-            unchanged &= this.hasInducers == hasInducers;
             unchanged &= this.oxPumpStages == oxPumpStages;
             unchanged &= this.fuelPumpStages == fuelPumpStages;
 
             if (!unchanged)
             {
                 turbopumpArrangement = newArranagement;
-                this.hasInducers = hasInducers;
                 this.oxPumpStages = oxPumpStages;
                 this.fuelPumpStages = fuelPumpStages;
                 engineCalc.CalculateEngineProperties();
@@ -153,13 +150,6 @@ namespace ProcEngines.EngineConfig
 
             oxPumpRotationRate = oxAux.suctionSpecificSpeed * Math.Pow(oxMaxNPSH, 0.75) / sqrtOxFlow;
             fuelPumpRotationRate = fuelAux.suctionSpecificSpeed * Math.Pow(fuelMaxNPSH, 0.75) / sqrtFuelFlow;       //this calculates the MAX rotation rate for the pumps
-
-            if(!hasInducers)
-            {
-                oxPumpRotationRate *= 0.35;     //lack of inducers causes the suction specific speed to drop
-                fuelPumpRotationRate *= 0.35;
-            }
-
 
             if(turbopumpArrangement == TurbopumpArrangementEnum.DIRECT_DRIVE)
                 oxPumpRotationRate = fuelPumpRotationRate = Math.Min(oxPumpRotationRate, fuelPumpRotationRate);     //if direct drive, them both pumps are on a common shaft with a common speed, limited to the slower one
@@ -318,12 +308,6 @@ namespace ProcEngines.EngineConfig
                 turbopumpArrangementSelector.GUIDropDownDisplay();
                 GUILayout.EndHorizontal();
 
-                //Turbopump Pump Setup
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Use Inducers:", GUILayout.Width(125));
-                bool tmpHasInducers = GUILayout.Toggle(hasInducers,"");
-                GUILayout.EndHorizontal();
-
                 //Fuel Pump Stages
                 int tmpoxPumpStages = oxPumpStages;
                 tmpoxPumpStages = GUIUtils.TextEntryForIntWithButton("Ox Pump Stages:", 125, tmpoxPumpStages, 50);
@@ -375,7 +359,7 @@ namespace ProcEngines.EngineConfig
                 GUILayout.Label((turbineEfficiency * 100).ToString("F1") + " %");
                 GUILayout.EndHorizontal(); 
                 
-                UpdateTurbopumpArrangement(turbopumpArrangementSelector.ActiveSelection, tmpHasInducers, tmpoxPumpStages, tmpfuelPumpStages);
+                UpdateTurbopumpArrangement(turbopumpArrangementSelector.ActiveSelection, tmpoxPumpStages, tmpfuelPumpStages);
             }
         }
         #endregion

@@ -152,6 +152,7 @@ namespace ProcEngines.EngineConfig
             gasGenPrefab = biPropConfig.CalcDataAtPresAndTemp(gasGenPresMPa, turbineInletTempK, oxRich);        //assume that gas gen runs at same pressure as chamber
 
             CalcTurbineExhaustBackPressure();
+
             turbinePresRatio = gasGenPresMPa / turbineBackPresMPa;
 
 
@@ -184,7 +185,7 @@ namespace ProcEngines.EngineConfig
             double massFlowOxTotal = turbineMassFlowOx + massFlowChamberOx;
 
             turbopump.CalculatePumpProperties(massFlowOxTotal, massFlowFuelTotal, tankPresMPa, oxPumpPresRiseMPa, fuelPumpPresRiseMPa);
-            turbopump.CalculateTurbineProperties(turbinePresRatio, gasGenPrefab);
+            //turbopump.CalculateTurbineProperties(turbinePresRatio, gasGenPrefab);
 
             double massFlowDiff = (turbopump.GetTurbineMassFlow() - turbineMassFlow);
             return massFlowDiff;
@@ -194,6 +195,7 @@ namespace ProcEngines.EngineConfig
         {
             double exhaustPresMPa = 0.1013 * 1.5;      //1.5 atm
 
+
             if(turbineExhaustType == TurbineExhaustEnum.INTO_NOZZLE)
             {
                 double machAtArea = NozzleUtils.MachFromAreaRatio(nozzleExhaustArea, modGamma);
@@ -201,14 +203,14 @@ namespace ProcEngines.EngineConfig
                 double isentropicRatio = 0.5 * (modGamma - 1.0);
                 isentropicRatio = (1.0 + isentropicRatio * enginePrefab.nozzleMach * enginePrefab.nozzleMach) / (1.0 + isentropicRatio * machAtArea * machAtArea);
 
-                exhaustPresMPa = Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa;       //gets the pressure in the nozzle at this area ratio
-
-                exhaustPresMPa *= (1.05);   //add some extra backpressure due to piping
+                exhaustPresMPa = Math.Max(Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa * 1.05, exhaustPresMPa);       //gets the pressure in the nozzle at this area ratio, but only if it's higher than this
             }
 
             turbineBackPresMPa = (gasGenPrefab.nozzleGamma - 1.0) * 0.5 + 1.0;
             turbineBackPresMPa = Math.Pow(turbineBackPresMPa, gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0));
             turbineBackPresMPa *= exhaustPresMPa;
+
+            turbineBackPresMPa = Math.Max(turbineBackPresMPa, gasGenPrefab.chamberPresMPa / 24.0);
         }
 
         void CalcTurbineExhaustThrust()
