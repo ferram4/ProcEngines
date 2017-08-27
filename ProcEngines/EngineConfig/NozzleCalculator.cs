@@ -121,6 +121,7 @@ namespace ProcEngines.EngineConfig
 
         void CalculateExitInflectionAngles()
         {
+            
             switch (shapeType)
             {
                 case NozzleShapeType.CONICAL:

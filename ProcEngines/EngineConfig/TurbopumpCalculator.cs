@@ -157,11 +157,11 @@ namespace ProcEngines.EngineConfig
             oxPumpHead = (this.oxPumpPresRiseMPa) / (oxDens * G0);
             fuelPumpHead = (this.fuelPumpPresRiseMPa) / (fuelDens * G0);
 
-            oxPumpStages = Math.Max((int)((this.oxPumpPresRiseMPa) / oxAux.pressureRisePerStageMPa + 1.0), oxPumpStages);
-            fuelPumpStages = Math.Max((int)((this.fuelPumpPresRiseMPa) / fuelAux.pressureRisePerStageMPa + 1.0), fuelPumpStages);
+            oxPumpStages = Math.Max((int)((this.oxPumpPresRiseMPa) / oxAux.pressureRisePerStageMPa + 1.0), 1);
+            fuelPumpStages = Math.Max((int)((this.fuelPumpPresRiseMPa) / fuelAux.pressureRisePerStageMPa + 1.0), 1);
 
-            oxPumpSpecificSpeed = oxPumpRotationRate * sqrtOxFlow * Math.Pow(oxPumpStages / oxPumpHead, 0.75);
-            fuelPumpSpecificSpeed = fuelPumpRotationRate * sqrtFuelFlow * Math.Pow(fuelPumpStages / fuelPumpHead, 0.75);
+            oxPumpSpecificSpeed = oxPumpRotationRate * sqrtOxFlow * Math.Pow(oxPumpStages / (oxPumpHead * G0), 0.75);
+            fuelPumpSpecificSpeed = fuelPumpRotationRate * sqrtFuelFlow * Math.Pow(fuelPumpStages / (fuelPumpHead * G0), 0.75);
 
             oxPumpEfficiency = CalculatePumpEfficiency(oxPumpSpecificSpeed, oxPumpVolFlowrate, oxAux.dynViscosity, oxPumpStages, true);
             fuelPumpEfficiency = CalculatePumpEfficiency(fuelPumpSpecificSpeed, fuelPumpVolFlowrate, fuelAux.dynViscosity, fuelPumpStages, false);
@@ -208,7 +208,7 @@ namespace ProcEngines.EngineConfig
             //turbineMassFlow *= turbineInletConditions.chamberCp * turbineInletConditions.chamberTempK;
             //turbineMassFlow = GetTotalRequiredPower() / (1000.0 * turbineMassFlow * turbineEfficiency);   //convert to tonnes
         }
-        
+
         public double GetTurbineMassFlow()
         {
             turbineMassFlow = (1.0 - 1.0 / turbineTempRatio);
@@ -216,6 +216,23 @@ namespace ProcEngines.EngineConfig
             turbineMassFlow = GetTotalRequiredPower() / (1000.0 * turbineMassFlow * turbineEfficiency);   //convert to tonnes
 
             return turbineMassFlow;
+        }
+
+        public double GetTurbinePower(double turbineMassFlow)
+        {
+            this.turbineMassFlow = turbineMassFlow;
+
+
+            double power = turbineMassFlow * turbineEfficiency * 1000.0;
+            power *= turbineInletConditions.chamberCp * turbineInletConditions.chamberTempK;
+            power *= (1.0 - 1.0 / turbineTempRatio);
+
+            return power;
+        }
+
+        public double PowerExtractedByTurbineFlow()
+        {
+            return GetTotalRequiredPower() / turbineEfficiency;
         }
 
         double CalculateNetPositiveSuctionHead(PropellantProperties properties, double dens, double tankPresMPa)
@@ -228,11 +245,24 @@ namespace ProcEngines.EngineConfig
 
         double CalculatePumpEfficiency(double specificSpeed, double volFlowRate, double viscosity, int stages, bool oxPump)
         {
-            double eff = pumpEffFromSpecificSpeed.Evaluate((float)specificSpeed) * pumpEffMultFromFlowrate.Evaluate((float)volFlowRate);
+            /*double eff = pumpEffFromSpecificSpeed.Evaluate((float)specificSpeed) * pumpEffMultFromFlowrate.Evaluate((float)volFlowRate);
 
-            eff *= (1.0 - 500.0 * viscosity * stages);
+            //eff *= (1.0 - 500.0 * viscosity * stages);
             if (oxPump)
-                eff *= 0.98;    //tolerance efficiency loss for ox pumps to avoid friction destroying them
+                eff *= 0.98;    //tolerance efficiency loss for ox pumps to avoid friction destroying them*/
+
+            double eff = specificSpeed;
+            if(eff < 0.8)
+            {
+                eff = 0.41989
+                    + eff * (2.1524
+                    + eff * (-3.1434
+                    + eff * 1.5673));
+            }
+            else
+            {
+                eff = 1.020 - 0.120 * eff;
+            }
 
             return eff;
         }

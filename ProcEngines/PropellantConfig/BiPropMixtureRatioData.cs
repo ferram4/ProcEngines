@@ -191,7 +191,7 @@ namespace ProcEngines.PropellantConfig
             }
             if (inputChamberPres > maxChamPres)
             {
-                Debug.LogError("[ProcEngines] Error: chamber pressure of " + inputChamberPres + " is below min pressure of " + maxChamPres + " for " + mixtureName + " at O//F " + oFRatio);
+                Debug.LogError("[ProcEngines] Error: chamber pressure of " + inputChamberPres + " is above max pressure of " + maxChamPres + " for " + mixtureName + " at O//F " + oFRatio);
                 return prefab;
             }
 

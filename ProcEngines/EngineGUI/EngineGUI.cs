@@ -93,12 +93,31 @@ namespace ProcEngines.EngineGUI
             {
                 BiPropellantConfig biprop = biPropellantConfigs.ActiveSelection;
                 engineCalcBase = new EngineCalculatorGasGen(biprop, (biprop.ChamberOFLimitLean + biprop.ChamberOFLimitRich) * 0.5, 4, 5, 0.3);
+                module.procEngineConfig = engineCalcBase;
             }
             else
             {
                 biPropellantConfigs.SetOption(engineCalcBase.biPropConfig.MixtureTitle);
-                powerCycleDropdown.SetOption(engineCalcBase.EngineCalculatorType());
+                powerCycleDropdown.SetOption(engineCalcBase.EngineCalculatorTypeString());
             }
+        }
+
+        void SetEngineCycle(PowerCycleEnum powerCycle)
+        {
+            if(powerCycle != PowerCycleEnum.GAS_GENERATOR && powerCycle != PowerCycleEnum.STAGED_COMBUSTION)
+                powerCycle = PowerCycleEnum.GAS_GENERATOR;
+
+            switch (powerCycle)
+            {
+                case PowerCycleEnum.GAS_GENERATOR:
+                    engineCalcBase = new EngineCalculatorGasGen(engineCalcBase);
+                    break;
+
+                case PowerCycleEnum.STAGED_COMBUSTION:
+                    engineCalcBase = new EngineCalculatorStaged(engineCalcBase);
+                    break;
+            }
+
         }
 
         void OnGUI()
@@ -157,6 +176,8 @@ namespace ProcEngines.EngineGUI
             areaRatio = GUIUtils.TextEntryForDoubleWithButtons("Expansion Ratio:", 125, areaRatio, 0.1, 1.0, 50);
 
             engineCalcBase.SetEngineProperties(biPropellantConfigs.ActiveSelection, chamberoFRatio, chamberPresMPa, areaRatio, throatDiam);
+
+
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical(GUILayout.Width(290));
@@ -199,6 +220,11 @@ namespace ProcEngines.EngineGUI
 
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
+
+            if (engineCalcBase.EngineCalculatorType() != powerCycleDropdown.ActiveSelection)
+            {
+                SetEngineCycle(powerCycleDropdown.ActiveSelection);
+            }
         }
 
         void GenerateSkin()

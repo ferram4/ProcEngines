@@ -51,12 +51,20 @@ namespace ProcEngines.EngineConfig
         double massFlowFrac;
         bool oxRich;
 
+        public EngineCalculatorGasGen(EngineCalculatorBase engineCalc)
+            : base(engineCalc) { }
+
         public EngineCalculatorGasGen(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
             : base(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter) { }
 
-        public override string EngineCalculatorType()
+        public override string EngineCalculatorTypeString()
         {
             return "Gas Generator";
+        }
+
+        public override PowerCycleEnum EngineCalculatorType()
+        {
+            return PowerCycleEnum.GAS_GENERATOR;
         }
 
         #region EnginePerformanceCalc
@@ -82,7 +90,7 @@ namespace ProcEngines.EngineConfig
             CalculateMainCombustionChamberParameters();
             AssumePumpPressureRise();
             SolveGasGenTurbine(oxRich);
-            CalculateEngineAndNozzlePerformanceProperties();
+            CalculateEngineAndNozzlePerformanceProperties(0);
         }
 
         void UpdateGasGenProperties(int oxRichInt, double turbineInletTemp)

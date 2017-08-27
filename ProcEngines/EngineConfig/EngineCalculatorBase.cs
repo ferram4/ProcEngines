@@ -90,6 +90,13 @@ namespace ProcEngines.EngineConfig
         public double reactionEfficiency = 1.0;
 
         #region Constructor
+        public EngineCalculatorBase(EngineCalculatorBase engineCalc)
+        {
+            nozzle = engineCalc.nozzle;
+            SetEngineProperties(engineCalc.biPropConfig, engineCalc.chamberOFRatio, engineCalc.chamberPresMPa, engineCalc.areaRatio, engineCalc.throatDiameter);
+            nozzleExtensionArea = engineCalc.areaRatio;
+        }
+        
         public EngineCalculatorBase(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
         {
             nozzle = new NozzleCalculator(0.8, areaRatio, NozzleShapeType.BELL);
@@ -120,7 +127,7 @@ namespace ProcEngines.EngineConfig
             if (chamberPresMPa < biPropConfig.ChamberPresLimLow)
                 chamberPresMPa = biPropConfig.ChamberPresLimLow;
 
-            unchanged &= this.chamberPresMPa == oFRatio;
+            unchanged &= this.chamberPresMPa == chamberPresMPa;
             this.chamberPresMPa = chamberPresMPa;
 
             if (areaRatio < biPropConfig.FrozenAreaRatio)
@@ -180,11 +187,16 @@ namespace ProcEngines.EngineConfig
         }
         #endregion
 
-        public virtual string EngineCalculatorType()
+        public virtual string EngineCalculatorTypeString()
         {
             return "NULL";
         }
 
+        public virtual PowerCycleEnum EngineCalculatorType()
+        {
+            return PowerCycleEnum.NONE_SELECTED;
+        }
+        
         public virtual void CalculateEngineProperties()
         {
         }
@@ -245,7 +257,7 @@ namespace ProcEngines.EngineConfig
             return modGamma;
         }
 
-        protected void CalculateEngineAndNozzlePerformanceProperties()
+        protected void CalculateEngineAndNozzlePerformanceProperties(double exitTempOffset)
         {
             effectiveFrozenAreaRatio = NozzleUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
             effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
@@ -257,7 +269,7 @@ namespace ProcEngines.EngineConfig
             double isentropicRatio = 0.5 * (modGamma - 1.0);
             isentropicRatio = (1.0 + isentropicRatio * enginePrefab.nozzleMach * enginePrefab.nozzleMach) / (1.0 + isentropicRatio * exitMach * exitMach);
 
-            double exitTemp = isentropicRatio * enginePrefab.nozzleTempK;
+            double exitTemp = isentropicRatio * (enginePrefab.nozzleTempK - exitTempOffset);
 
             double exitSonicVelocity = Math.Sqrt(modGamma * GAS_CONSTANT / enginePrefab.nozzleMWgMol * exitTemp);
 

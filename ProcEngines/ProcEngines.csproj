@@ -44,6 +44,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EngineConfig\EngineCalculatorStaged.cs" />
     <Compile Include="EngineConfig\NozzleCalculator.cs" />
     <Compile Include="EngineConfig\ProceduralEngineConfig.cs" />
     <Compile Include="EngineConfig\TurbopumpCalculator.cs" />

@@ -28,11 +28,13 @@ namespace ProcEngines.EngineConfig
 {
     class EngineCalculatorPresFed : EngineCalculatorBase
     {
+        public EngineCalculatorPresFed(EngineCalculatorBase engineCalc)
+            : base(engineCalc) { }
 
         public EngineCalculatorPresFed(BiPropellantConfig mixture, double oFRatio, double chamberPresMPa, double areaRatio, double throatDiameter)
             : base(mixture, oFRatio, chamberPresMPa, areaRatio, throatDiameter) { }
 
-        public override string EngineCalculatorType()
+        public override string EngineCalculatorTypeString()
         {
             return "Pressure Fed";
         }
@@ -41,7 +43,7 @@ namespace ProcEngines.EngineConfig
         {
             CalculateMainCombustionChamberParameters();
             CalcRequiredTankPressurization();
-            CalculateEngineAndNozzlePerformanceProperties();
+            CalculateEngineAndNozzlePerformanceProperties(0);
         }
 
         void CalcRequiredTankPressurization()

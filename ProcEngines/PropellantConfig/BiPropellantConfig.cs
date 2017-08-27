@@ -52,6 +52,7 @@ namespace ProcEngines.PropellantConfig
 
         double chamberPresLimLow;
         double chamberPresLimHigh;
+        double maxPresAvailable;
 
         public double ChamberPresLimLow
         {
@@ -61,6 +62,10 @@ namespace ProcEngines.PropellantConfig
         {
             get { return chamberPresLimHigh; }
         }
+        public double MaxPresAvailable
+        {
+            get { return maxPresAvailable; }
+        }        
 
         PartResourceDefinition oxidizer;
         PartResourceDefinition fuel;
@@ -98,7 +103,8 @@ namespace ProcEngines.PropellantConfig
                 mixtureOFRatios[i] = mixtureData[i].OFRatio;
             }
             chamberPresLimLow = mixtureData[0].MinChamPres;
-            chamberPresLimHigh = mixtureData[0].MaxChamPres * 0.5;
+            maxPresAvailable = mixtureData[0].MaxChamPres;
+            chamberPresLimHigh = maxPresAvailable * 0.5;
         }
 
         public double GetOxDensity()
