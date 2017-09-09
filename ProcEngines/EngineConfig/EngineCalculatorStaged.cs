@@ -156,7 +156,7 @@ namespace ProcEngines.EngineConfig
             turbineMassFlow = turbineMassFlowOx + turbineMassFlowFuel;
 
             oxPumpPresRiseMPa = preBurnerPresMPa * (1.0 + injectorPressureRatioDrop) - tankPresMPa;
-            fuelPumpPresRiseMPa = preBurnerPresMPa * (1.0 + injectorPressureRatioDrop) * (1.0 + regenerativeCoolingPresDrop) - tankPresMPa;
+            fuelPumpPresRiseMPa = Math.Max(preBurnerPresMPa * (1.0 + injectorPressureRatioDrop), chamberPresMPa * (1.0 + regenerativeCoolingPresDrop)) - tankPresMPa;
 
             turbopump.CalculatePumpProperties(massFlowChamberOx, massFlowChamberFuel, tankPresMPa, oxPumpPresRiseMPa, fuelPumpPresRiseMPa);
             turbopump.CalculateTurbineProperties(turbinePresRatio, preBurnerPrefab);

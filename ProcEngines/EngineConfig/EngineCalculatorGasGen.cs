@@ -146,7 +146,7 @@ namespace ProcEngines.EngineConfig
         void AssumePumpPressureRise()
         {
             oxPumpPresRiseMPa = chamberPresMPa * (1.0 + injectorPressureRatioDrop) - tankPresMPa;
-            fuelPumpPresRiseMPa = chamberPresMPa * (1.0 + injectorPressureRatioDrop) * (1.0 + regenerativeCoolingPresDrop) - tankPresMPa;      //assume that only fuel is used for regen cooling
+            fuelPumpPresRiseMPa = chamberPresMPa * (1.0 + injectorPressureRatioDrop + regenerativeCoolingPresDrop) - tankPresMPa;      //assume that only fuel is used for regen cooling
         }
 
         void SolveGasGenTurbine(bool oxRich)

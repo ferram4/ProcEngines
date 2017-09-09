@@ -46,8 +46,6 @@ namespace ProcEngines.EngineConfig
         public double nozzleDiameter;
         protected NozzleCalculator nozzle;
 
-        protected double effectiveFrozenAreaRatio;
-        protected double effectiveExitAreaRatio;
         double exhaustVelocityOpt;
         double exitPressureMPa;
 
@@ -212,10 +210,12 @@ namespace ProcEngines.EngineConfig
             //Generate engine prefab for this OF ratio and cham pres
             enginePrefab = biPropConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
 
+            double gamma = enginePrefab.nozzleGamma * biPropConfig.GammaVaryFactor(enginePrefab.chamberTempK, enginePrefab.OFRatio);
+
             //Calc mass flow for a choked nozzle
-            massFlowChamber = (enginePrefab.nozzleGamma + 1.0) / (enginePrefab.nozzleGamma - 1.0);
-            massFlowChamber = Math.Pow(2.0 / (enginePrefab.nozzleGamma + 1.0), massFlowChamber);
-            massFlowChamber *= enginePrefab.nozzleGamma * enginePrefab.nozzleMWgMol;
+            massFlowChamber = (gamma + 1.0) / (gamma - 1.0);
+            massFlowChamber = Math.Pow(2.0 / (gamma + 1.0), massFlowChamber);
+            massFlowChamber *= gamma * enginePrefab.nozzleMWgMol;
             massFlowChamber /= (GAS_CONSTANT * enginePrefab.chamberTempK);
             massFlowChamber = Math.Sqrt(massFlowChamber);
             massFlowChamber *= enginePrefab.chamberPresMPa * throatArea;
@@ -250,19 +250,19 @@ namespace ProcEngines.EngineConfig
             return (1 - thermalReactionLoss) * (1 - lowPresChamberLoss) * injectorMixingEfficiency;
         }
 
-        double CalculateGammaModified(double effExitAreaRatio)
+        /*double CalculateGammaModified(double effExitAreaRatio)
         {
             double modGamma = -0.12 / (effExitAreaRatio - enginePrefab.frozenAreaRatio + 1.0) + 0.12;
             modGamma += enginePrefab.nozzleGamma;
             return modGamma;
-        }
+        }*/
 
         protected void CalculateEngineAndNozzlePerformanceProperties(double exitTempOffset)
         {
+            /*modGamma = CalculateGammaModified(areaRatio);       //avg gamma, modified for expansion ratio
+
             effectiveFrozenAreaRatio = NozzleUtils.AreaRatioFromMach(enginePrefab.nozzleMach, enginePrefab.nozzleGamma);
             effectiveExitAreaRatio = areaRatio * enginePrefab.frozenAreaRatio / effectiveFrozenAreaRatio;
-
-            modGamma = CalculateGammaModified(effectiveExitAreaRatio);       //avg gamma, modified for expansion ratio
 
             double exitMach = NozzleUtils.MachFromAreaRatio(effectiveExitAreaRatio, modGamma);
 
@@ -275,7 +275,9 @@ namespace ProcEngines.EngineConfig
 
             exhaustVelocityOpt = exitSonicVelocity * exitMach;
 
-            exitPressureMPa = Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa;
+            exitPressureMPa = Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa;*/
+
+            CalculateFrozenConfigNozzle();
 
             nozzle.UpdateNozzleStatus(areaRatio);
 
@@ -295,6 +297,107 @@ namespace ProcEngines.EngineConfig
 
             specImpulseVac = thrustVac / (massFlowTotal * G0);
             specImpulseSL = thrustSL / (massFlowTotal * G0);
+        }
+
+        void CalculateFrozenConfigNozzle()
+        {
+            double specGasConst = GAS_CONSTANT / enginePrefab.nozzleMWgMol;
+
+            double massFlow = massFlowChamber * reactionEfficiency;
+
+            double U1 = 0, U2;
+            double P1 = enginePrefab.chamberPresMPa, P2;
+            double T2;
+
+            T2 = enginePrefab.nozzleTempK;
+            P2 = enginePrefab.nozzlePresMPa;
+
+            U2 = massFlow * T2 * specGasConst;
+            U2 /= throatArea * enginePrefab.frozenAreaRatio * P2 * 1000.0;
+            U1 = U2;
+
+            double dUdA1, dUdA2;
+            double dPdU1, dPdU2;
+
+            double areaStep = 0.01 * throatArea;
+
+            double curArea = throatArea * enginePrefab.frozenAreaRatio;
+
+            double curGamma = enginePrefab.nozzleGamma * biPropConfig.GammaVaryFactor(enginePrefab.nozzleTempK, enginePrefab.OFRatio);
+
+            dUdA2 = curGamma * specGasConst * T2;
+            dUdA2 = U2 * U2 / dUdA2 - 1.0;
+            dUdA2 = U2 / (curArea * dUdA2);
+
+            dPdU2 = -massFlow * 1000.0 / curArea;
+
+            double invTempPresCalc = 1000.0 / (specGasConst * massFlow);
+
+            modGamma = curGamma;
+
+            double counter = 1;
+            while (curArea < nozzleArea)
+            {
+                double curAreaRatio = curArea / throatArea;
+                if (curAreaRatio > 3)
+                {
+                    areaStep = throatArea * 0.05;
+                }
+                if (curAreaRatio > 50)
+                {
+                    areaStep = throatArea * 0.1;
+                } 
+                
+                counter++;
+                curArea += areaStep;
+                P1 = P2;
+                U1 = U2;
+                dUdA1 = dUdA2;
+                dPdU1 = dPdU2;
+
+                dPdU2 = -massFlow * 1000.0 / curArea;
+
+                double lastU2 = U2;
+
+                U2 = U1 + dUdA1 * areaStep;     //step forward
+
+                int iter = 0;
+
+                while(Math.Abs(U2 - lastU2) / U2 < 0.001 && iter < 10)       //use predictor-corrector method allowing for 0.1% error
+                {
+                    P2 = P1 + (0.5 * (dPdU1 + dPdU2) * (U2 - U1)) * 0.000001;
+
+                    T2 = (curArea * P2 * U2) * invTempPresCalc;
+
+                    curGamma = enginePrefab.nozzleGamma * biPropConfig.GammaVaryFactor(T2, enginePrefab.OFRatio);
+
+                    dUdA2 = curGamma * specGasConst * T2;
+                    dUdA2 = U2 * U2 / dUdA2 - 1.0;
+                    dUdA2 = U2 / (curArea * dUdA2);
+
+                    lastU2 = U2;
+
+                    U2 = U1 + 0.5 * (dUdA1 + dUdA2) * areaStep;
+                    iter++;
+                }
+                modGamma += curGamma;
+
+            }
+
+            if(curArea > nozzleArea)
+            {
+                double lastArea = curArea - areaStep;
+
+                double linearScaleFactor = nozzleArea - lastArea / (curArea - lastArea);
+
+                U2 = U1 + (U2 - U1) * linearScaleFactor;
+                P2 = P1 + (P2 - P1) * linearScaleFactor;
+
+                //do things to scale vel back down
+            }
+            modGamma /= counter;
+            exhaustVelocityOpt = U2;
+            exitPressureMPa = P2;
         }
         #endregion
 

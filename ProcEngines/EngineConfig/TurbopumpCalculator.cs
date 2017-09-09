@@ -104,6 +104,8 @@ namespace ProcEngines.EngineConfig
         public void UpdateMixture(BiPropellantConfig config)
         {
             biPropConfig = config;
+            fuelAux = PropellantMixtureLibrary.AuxPropellantProperties[config.Fuel];
+            oxAux = PropellantMixtureLibrary.AuxPropellantProperties[config.Oxidizer];
         }
 
         public void UpdateTurbopumpArrangement(TurbopumpArrangementEnum newArranagement, int oxPumpStages, int fuelPumpStages)

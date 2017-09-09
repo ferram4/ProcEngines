@@ -77,7 +77,7 @@ namespace ProcEngines.PropellantConfig
 
         BiPropMixtureRatioData[] mixtureData;
         double[] mixtureOFRatios;
-
+        FloatCurve gammaTempFactor;
 
         public BiPropellantConfig(ConfigNode biPropNode)
         {
@@ -96,6 +96,16 @@ namespace ProcEngines.PropellantConfig
 
             mixtureData = new BiPropMixtureRatioData[mixtureDataNodes.Length];
             mixtureOFRatios = new double[mixtureDataNodes.Length];
+
+            gammaTempFactor = new FloatCurve();
+            ConfigNode curveNode = biPropNode.GetNode("GammaVaryWithTemp");
+            string[] curveVals = curveNode.GetValues("key");
+
+            for (int i = 0; i < curveVals.Length; ++i)
+            {
+                string[] splitSection = curveVals[i].Split(new char[] { ',', ' ', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                gammaTempFactor.Add(float.Parse(splitSection[0]), float.Parse(splitSection[1]));
+            }
 
             for (int i = 0; i < mixtureDataNodes.Length; ++i)
             {
@@ -206,6 +216,18 @@ namespace ProcEngines.PropellantConfig
             Debug.LogError("[ProcEngines] Error in data tables, could not solve");
 
             return new EngineDataPrefab();
+        }
+
+        public double GammaVaryFactor(double tempK, double OF)
+        {
+            double factor = 1.0;/*(chamberOFLimitLean + chamberOFLimitRich) * 0.5;
+            factor = OF - factor;
+            factor *= factor;
+            factor *= -0.08;
+            factor /= (chamberOFLimitLean - chamberOFLimitRich) * (chamberOFLimitLean - chamberOFLimitRich);
+            factor += 1.0;*/
+
+            return (double)gammaTempFactor.Evaluate((float)tempK) * factor;
         }
 
         public static bool CheckConfigResourcesExist(ConfigNode biPropConfig)
