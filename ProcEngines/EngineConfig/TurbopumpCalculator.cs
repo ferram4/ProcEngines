@@ -201,7 +201,9 @@ namespace ProcEngines.EngineConfig
         {
             this.turbinePresRatio = turbinePresRatio;
 
-            double gammaPower = (turbineInletConditions.nozzleGamma - 1.0) / turbineInletConditions.nozzleGamma;
+
+            double gammaPower = turbineInletConditions.nozzleGamma * biPropConfig.GammaVaryFactor(turbineInletConditions.chamberTempK, turbineInletConditions.OFRatio);
+            gammaPower = (gammaPower - 1.0) / gammaPower;
             turbineTempRatio = Math.Pow(turbinePresRatio, gammaPower);
 
             turbineEfficiency = CalculateTurbineEfficiency();
@@ -273,7 +275,9 @@ namespace ProcEngines.EngineConfig
         {
             double pitchLineVelocity = 250;// more typical value //500;     //max value possible
 
-            double theoreticalSpoutingVel = 1.0 - Math.Pow(turbinePresRatio, (1.0 - turbineInletConditions.nozzleGamma) / turbineInletConditions.nozzleGamma);
+            double gamma = turbineInletConditions.nozzleGamma * biPropConfig.GammaVaryFactor(turbineInletConditions.chamberTempK, turbineInletConditions.OFRatio);
+
+            double theoreticalSpoutingVel = 1.0 - Math.Pow(turbinePresRatio, (1.0 - gamma) / gamma);
             theoreticalSpoutingVel *= turbineInletConditions.chamberTempK * turbineInletConditions.chamberCp * 2.0;
             theoreticalSpoutingVel = Math.Sqrt(theoreticalSpoutingVel);
 

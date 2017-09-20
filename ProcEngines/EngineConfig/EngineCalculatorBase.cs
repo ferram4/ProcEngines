@@ -210,7 +210,7 @@ namespace ProcEngines.EngineConfig
             //Generate engine prefab for this OF ratio and cham pres
             enginePrefab = biPropConfig.CalcPrefabData(chamberOFRatio, chamberPresMPa);
 
-            double gamma = enginePrefab.nozzleGamma * biPropConfig.GammaVaryFactor(enginePrefab.chamberTempK, enginePrefab.OFRatio);
+            double gamma = enginePrefab.nozzleGamma;// *biPropConfig.GammaVaryFactor(enginePrefab.chamberTempK, enginePrefab.OFRatio);
 
             //Calc mass flow for a choked nozzle
             massFlowChamber = (gamma + 1.0) / (gamma - 1.0);
@@ -277,7 +277,7 @@ namespace ProcEngines.EngineConfig
 
             exitPressureMPa = Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa;*/
 
-            CalculateFrozenConfigNozzle();
+            CalculateFrozenConfigNozzle(exitTempOffset);
 
             nozzle.UpdateNozzleStatus(areaRatio);
 
@@ -299,7 +299,7 @@ namespace ProcEngines.EngineConfig
             specImpulseSL = thrustSL / (massFlowTotal * G0);
         }
 
-        void CalculateFrozenConfigNozzle()
+        void CalculateFrozenConfigNozzle(double exitTempOffset)
         {
             double specGasConst = GAS_CONSTANT / enginePrefab.nozzleMWgMol;
 
@@ -309,7 +309,7 @@ namespace ProcEngines.EngineConfig
             double P1 = enginePrefab.chamberPresMPa, P2;
             double T2;
 
-            T2 = enginePrefab.nozzleTempK;
+            T2 = enginePrefab.nozzleTempK - exitTempOffset;
             P2 = enginePrefab.nozzlePresMPa;
 
             U2 = massFlow * T2 * specGasConst;
@@ -323,7 +323,7 @@ namespace ProcEngines.EngineConfig
 
             double curArea = throatArea * enginePrefab.frozenAreaRatio;
 
-            double curGamma = enginePrefab.nozzleGamma * biPropConfig.GammaVaryFactor(enginePrefab.nozzleTempK, enginePrefab.OFRatio);
+            double curGamma = enginePrefab.nozzleGamma * biPropConfig.GammaVaryFactor(T2, enginePrefab.OFRatio);
 
             dUdA2 = curGamma * specGasConst * T2;
             dUdA2 = U2 * U2 / dUdA2 - 1.0;
@@ -336,14 +336,14 @@ namespace ProcEngines.EngineConfig
             modGamma = curGamma;
 
             double counter = 1;
-            while (curArea < nozzleArea)
+            while (curArea <= nozzleArea + areaStep)
             {
                 double curAreaRatio = curArea / throatArea;
-                if (curAreaRatio > 3)
+                if (curAreaRatio >= 3)
                 {
                     areaStep = throatArea * 0.05;
                 }
-                if (curAreaRatio > 50)
+                if (curAreaRatio >= 50)
                 {
                     areaStep = throatArea * 0.1;
                 } 
@@ -363,7 +363,7 @@ namespace ProcEngines.EngineConfig
 
                 int iter = 0;
 
-                while(Math.Abs(U2 - lastU2) / U2 < 0.001 && iter < 10)       //use predictor-corrector method allowing for 0.1% error
+                while((Math.Abs(U2 - lastU2) / U2 > 0.001 || iter == 0) && iter < 10)       //use predictor-corrector method allowing for 0.1% error
                 {
                     P2 = P1 + (0.5 * (dPdU1 + dPdU2) * (U2 - U1)) * 0.000001;
 
@@ -381,7 +381,6 @@ namespace ProcEngines.EngineConfig
                     iter++;
                 }
                 modGamma += curGamma;
-
             }
 
             if(curArea > nozzleArea)
@@ -398,6 +397,8 @@ namespace ProcEngines.EngineConfig
             modGamma /= counter;
             exhaustVelocityOpt = U2;
             exitPressureMPa = P2;
+
+            Debug.Log(U2 + " " + P2 + " " + T2);
         }
         #endregion
 

@@ -163,8 +163,8 @@ namespace ProcEngines.EngineConfig
 
             turbinePresRatio = gasGenPresMPa / turbineBackPresMPa;
 
-
-            double gammaPower = -(gasGenPrefab.nozzleGamma - 1.0) / gasGenPrefab.nozzleGamma;
+            double gammaPower = gasGenPrefab.nozzleGamma * biPropConfig.GammaVaryFactor(gasGenPrefab.chamberTempK, gasGenPrefab.OFRatio);
+            gammaPower = -(gammaPower - 1.0) / gammaPower;
             double[] gasGenOFRatio = new double[] { gasGenPrefab.OFRatio };
 
 
@@ -214,8 +214,10 @@ namespace ProcEngines.EngineConfig
                 exhaustPresMPa = Math.Max(Math.Pow(isentropicRatio, modGamma / (modGamma - 1.0)) * enginePrefab.nozzlePresMPa * 1.05, exhaustPresMPa);       //gets the pressure in the nozzle at this area ratio, but only if it's higher than this
             }
 
-            turbineBackPresMPa = (gasGenPrefab.nozzleGamma - 1.0) * 0.5 + 1.0;
-            turbineBackPresMPa = Math.Pow(turbineBackPresMPa, gasGenPrefab.nozzleGamma / (gasGenPrefab.nozzleGamma - 1.0));
+            double gamma = gasGenPrefab.nozzleGamma * biPropConfig.GammaVaryFactor(gasGenPrefab.nozzleTempK, gasGenPrefab.OFRatio);
+
+            turbineBackPresMPa = (gamma - 1.0) * 0.5 + 1.0;
+            turbineBackPresMPa = Math.Pow(turbineBackPresMPa, gamma / (gamma - 1.0));
             turbineBackPresMPa *= exhaustPresMPa;
 
             turbineBackPresMPa = Math.Max(turbineBackPresMPa, gasGenPrefab.chamberPresMPa / 24.0);
